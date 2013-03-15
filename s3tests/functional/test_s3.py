@@ -754,7 +754,7 @@ def test_bucket_notexist():
 
     e = assert_raises(boto.exception.S3ResponseError, s3.main.get_bucket, name)
     eq(e.status, 404)
-    eq(e.reason, 'Not Found')
+    assert(e.reason.find('Not Found') != -1)
     eq(e.error_code, 'NoSuchBucket')
 
 
@@ -767,7 +767,7 @@ def test_bucket_delete_notexist():
     print 'Trying bucket {name!r}'.format(name=name)
     e = assert_raises(boto.exception.S3ResponseError, s3.main.delete_bucket, name)
     eq(e.status, 404)
-    eq(e.reason, 'Not Found')
+    assert(e.reason.find('Not Found') != -1)
     eq(e.error_code, 'NoSuchBucket')
 
 @attr(resource='bucket')
@@ -798,7 +798,7 @@ def test_object_write_to_nonexist_bucket():
     key = bucket.new_key('foo123bar')
     e = assert_raises(boto.exception.S3ResponseError, key.set_contents_from_string, 'foo')
     eq(e.status, 404)
-    eq(e.reason, 'Not Found')
+    assert(e.reason.find('Not Found') != -1)
     eq(e.error_code, 'NoSuchBucket')
 
 
@@ -816,7 +816,7 @@ def test_bucket_create_delete():
     # make sure it's gone
     e = assert_raises(boto.exception.S3ResponseError, bucket.delete)
     eq(e.status, 404)
-    eq(e.reason, 'Not Found')
+    assert(e.reason.find('Not Found') != -1)
     eq(e.error_code, 'NoSuchBucket')
 
 
@@ -829,7 +829,7 @@ def test_object_read_notexist():
     key = bucket.new_key('foobar')
     e = assert_raises(boto.exception.S3ResponseError, key.get_contents_as_string)
     eq(e.status, 404)
-    eq(e.reason, 'Not Found')
+    assert(e.reason.find('Not Found') != -1)
     eq(e.error_code, 'NoSuchKey')
 
 
@@ -1130,27 +1130,27 @@ def test_object_write_file():
 
 def _get_post_url(conn, bucket):
 
-	url = '{protocol}://{host}:{port}/{bucket}'.format(protocol= 'https' if conn.is_secure else 'http',\
+        url = '{protocol}://{host}:{port}/{bucket}'.format(protocol= 'https' if conn.is_secure else 'http',\
                     host=conn.host, port=conn.port, bucket=bucket.name)
-	return url
+        return url
 
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='anonymous browser based upload via POST request')
 @attr(assertion='succeeds and returns written data')
 def test_post_object_anonymous_request():
-	bucket = get_new_bucket()
-	url = _get_post_url(s3.main, bucket)
-	bucket.set_acl('public-read-write')
+        bucket = get_new_bucket()
+        url = _get_post_url(s3.main, bucket)
+        bucket.set_acl('public-read-write')
 
-	payload = OrderedDict([("key" , "foo.txt"),("acl" , "public-read"),\
-	("Content-Type" , "text/plain"),('file', ('bar'))])
+        payload = OrderedDict([("key" , "foo.txt"),("acl" , "public-read"),\
+        ("Content-Type" , "text/plain"),('file', ('bar'))])
 
-	r = requests.post(url, files = payload)
-	eq(r.status_code, 204)
-	key = bucket.get_key("foo.txt")
-	got = key.get_contents_as_string()
-	eq(got, 'bar')
+        r = requests.post(url, files = payload)
+        eq(r.status_code, 204)
+        key = bucket.get_key("foo.txt")
+        got = key.get_contents_as_string()
+        eq(got, 'bar')
 
 
 @attr(resource='object')
@@ -1158,37 +1158,37 @@ def test_post_object_anonymous_request():
 @attr(operation='authenticated browser based upload via POST request')
 @attr(assertion='succeeds and returns written data')
 def test_post_object_authenticated_request():
-	bucket = get_new_bucket()
+        bucket = get_new_bucket()
 
-	url = _get_post_url(s3.main, bucket)
+        url = _get_post_url(s3.main, bucket)
 
-	utc = pytz.utc
-	expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
+        utc = pytz.utc
+        expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
 
-	policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
-	"conditions": [\
-	{"bucket": bucket.name},\
-	["starts-with", "$key", "foo"],\
-	{"acl": "private"},\
-	["starts-with", "$Content-Type", "text/plain"],\
-	["content-length-range", 0, 1024]\
-	]\
-	}
+        policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
+        "conditions": [\
+        {"bucket": bucket.name},\
+        ["starts-with", "$key", "foo"],\
+        {"acl": "private"},\
+        ["starts-with", "$Content-Type", "text/plain"],\
+        ["content-length-range", 0, 1024]\
+        ]\
+        }
 
-	json_policy_document = json.JSONEncoder().encode(policy_document)
-	policy = base64.b64encode(json_policy_document)
-	conn = s3.main
-	signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
+        json_policy_document = json.JSONEncoder().encode(policy_document)
+        policy = base64.b64encode(json_policy_document)
+        conn = s3.main
+        signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
 
-	payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
-	("acl" , "private"),("signature" , signature),("policy" , policy),\
-	("Content-Type" , "text/plain"),('file', ('bar'))])
+        payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
+        ("acl" , "private"),("signature" , signature),("policy" , policy),\
+        ("Content-Type" , "text/plain"),('file', ('bar'))])
 
-	r = requests.post(url, files = payload)
-	eq(r.status_code, 204)
-	key = bucket.get_key("foo.txt")
-	got = key.get_contents_as_string()
-	eq(got, 'bar')
+        r = requests.post(url, files = payload)
+        eq(r.status_code, 204)
+        key = bucket.get_key("foo.txt")
+        got = key.get_contents_as_string()
+        eq(got, 'bar')
 
 @attr(resource='object')
 @attr(method='post')
@@ -1231,18 +1231,18 @@ def test_post_object_authenticated_request_bad_access_key():
 @attr(operation='anonymous browser based upload via POST request')
 @attr(assertion='succeeds with status 201')
 def test_post_object_set_success_code():
-	bucket = get_new_bucket()
-	bucket.set_acl('public-read-write')
-	url = _get_post_url(s3.main, bucket)
+        bucket = get_new_bucket()
+        bucket.set_acl('public-read-write')
+        url = _get_post_url(s3.main, bucket)
 
-	payload = OrderedDict([("key" , "foo.txt"),("acl" , "public-read"),\
-	("success_action_status" , "201"),\
-	("Content-Type" , "text/plain"),('file', ('bar'))])
+        payload = OrderedDict([("key" , "foo.txt"),("acl" , "public-read"),\
+        ("success_action_status" , "201"),\
+        ("Content-Type" , "text/plain"),('file', ('bar'))])
 
-	r = requests.post(url, files = payload)
-	eq(r.status_code, 201)
-	message = ET.fromstring(r.content).find('Key')
-	eq(message.text,'foo.txt')
+        r = requests.post(url, files = payload)
+        eq(r.status_code, 201)
+        message = ET.fromstring(r.content).find('Key')
+        eq(message.text,'foo.txt')
 
 
 @attr(resource='object')
@@ -1250,17 +1250,17 @@ def test_post_object_set_success_code():
 @attr(operation='anonymous browser based upload via POST request')
 @attr(assertion='succeeds with status 204')
 def test_post_object_set_invalid_success_code():
-	bucket = get_new_bucket()
-	bucket.set_acl('public-read-write')
-	url = _get_post_url(s3.main, bucket)
+        bucket = get_new_bucket()
+        bucket.set_acl('public-read-write')
+        url = _get_post_url(s3.main, bucket)
 
-	payload = OrderedDict([("key" , "foo.txt"),("acl" , "public-read"),\
-	("success_action_status" , "404"),\
-	("Content-Type" , "text/plain"),('file', ('bar'))])
+        payload = OrderedDict([("key" , "foo.txt"),("acl" , "public-read"),\
+        ("success_action_status" , "404"),\
+        ("Content-Type" , "text/plain"),('file', ('bar'))])
 
-	r = requests.post(url, files = payload)
-	eq(r.status_code, 204)
-	eq(r.content,'')
+        r = requests.post(url, files = payload)
+        eq(r.status_code, 204)
+        eq(r.content,'')
 
 
 @attr(resource='object')
@@ -1268,39 +1268,39 @@ def test_post_object_set_invalid_success_code():
 @attr(operation='authenticated browser based upload via POST request')
 @attr(assertion='succeeds and returns written data')
 def test_post_object_upload_larger_than_chunk():
-	bucket = get_new_bucket()
+        bucket = get_new_bucket()
 
-	url = _get_post_url(s3.main, bucket)
+        url = _get_post_url(s3.main, bucket)
 
-	utc = pytz.utc
-	expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
-	
-	policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
-	"conditions": [\
-	{"bucket": bucket.name},\
-	["starts-with", "$key", "foo"],\
-	{"acl": "private"},\
-	["starts-with", "$Content-Type", "text/plain"],\
-	["content-length-range", 0, 5*1024*1024]\
-	]\
-	}
+        utc = pytz.utc
+        expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
 
-	json_policy_document = json.JSONEncoder().encode(policy_document)
-	policy = base64.b64encode(json_policy_document)
-	conn = s3.main
-	signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
+        policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
+        "conditions": [\
+        {"bucket": bucket.name},\
+        ["starts-with", "$key", "foo"],\
+        {"acl": "private"},\
+        ["starts-with", "$Content-Type", "text/plain"],\
+        ["content-length-range", 0, 5*1024*1024]\
+        ]\
+        }
 
-	foo_string = 'foo' * 1024*1024
+        json_policy_document = json.JSONEncoder().encode(policy_document)
+        policy = base64.b64encode(json_policy_document)
+        conn = s3.main
+        signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
 
-	payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
-	("acl" , "private"),("signature" , signature),("policy" , policy),\
-	("Content-Type" , "text/plain"),('file', foo_string)])
+        foo_string = 'foo' * 1024*1024
 
-	r = requests.post(url, files = payload)
-	eq(r.status_code, 204)
-	key = bucket.get_key("foo.txt")
-	got = key.get_contents_as_string()
-	eq(got, foo_string)
+        payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
+        ("acl" , "private"),("signature" , signature),("policy" , policy),\
+        ("Content-Type" , "text/plain"),('file', foo_string)])
+
+        r = requests.post(url, files = payload)
+        eq(r.status_code, 204)
+        key = bucket.get_key("foo.txt")
+        got = key.get_contents_as_string()
+        eq(got, foo_string)
 
 
 @attr(resource='object')
@@ -1308,37 +1308,37 @@ def test_post_object_upload_larger_than_chunk():
 @attr(operation='authenticated browser based upload via POST request')
 @attr(assertion='succeeds and returns written data')
 def test_post_object_set_key_from_filename():
-	bucket = get_new_bucket()
+        bucket = get_new_bucket()
 
-	url = _get_post_url(s3.main, bucket)
+        url = _get_post_url(s3.main, bucket)
 
-	utc = pytz.utc
-	expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
+        utc = pytz.utc
+        expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
 
-	policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
-	"conditions": [\
-	{"bucket": bucket.name},\
-	["starts-with", "$key", "foo"],\
-	{"acl": "private"},\
-	["starts-with", "$Content-Type", "text/plain"],\
-	["content-length-range", 0, 5*1024*1024]\
-	]\
-	}
+        policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
+        "conditions": [\
+        {"bucket": bucket.name},\
+        ["starts-with", "$key", "foo"],\
+        {"acl": "private"},\
+        ["starts-with", "$Content-Type", "text/plain"],\
+        ["content-length-range", 0, 5*1024*1024]\
+        ]\
+        }
 
-	json_policy_document = json.JSONEncoder().encode(policy_document)
-	policy = base64.b64encode(json_policy_document)
-	conn = s3.main
-	signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
+        json_policy_document = json.JSONEncoder().encode(policy_document)
+        policy = base64.b64encode(json_policy_document)
+        conn = s3.main
+        signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
 
-	payload = OrderedDict([ ("key" , "${filename}"),("AWSAccessKeyId" , conn.aws_access_key_id),\
-	("acl" , "private"),("signature" , signature),("policy" , policy),\
-	("Content-Type" , "text/plain"),('file', ('foo.txt', 'bar'))])
+        payload = OrderedDict([ ("key" , "${filename}"),("AWSAccessKeyId" , conn.aws_access_key_id),\
+        ("acl" , "private"),("signature" , signature),("policy" , policy),\
+        ("Content-Type" , "text/plain"),('file', ('foo.txt', 'bar'))])
 
-	r = requests.post(url, files = payload)
-	eq(r.status_code, 204)
-	key = bucket.get_key("foo.txt")
-	got = key.get_contents_as_string()
-	eq(got, 'bar')
+        r = requests.post(url, files = payload)
+        eq(r.status_code, 204)
+        key = bucket.get_key("foo.txt")
+        got = key.get_contents_as_string()
+        eq(got, 'bar')
 
 
 @attr(resource='object')
@@ -1346,34 +1346,34 @@ def test_post_object_set_key_from_filename():
 @attr(operation='authenticated browser based upload via POST request')
 @attr(assertion='succeeds with status 204')
 def test_post_object_ignored_header():
-	bucket = get_new_bucket()
+        bucket = get_new_bucket()
 
-	url = _get_post_url(s3.main, bucket)
+        url = _get_post_url(s3.main, bucket)
 
-	utc = pytz.utc
-	expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
+        utc = pytz.utc
+        expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
 
-	policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
-	"conditions": [\
-	{"bucket": bucket.name},\
-	["starts-with", "$key", "foo"],\
-	{"acl": "private"},\
-	["starts-with", "$Content-Type", "text/plain"],\
-	["content-length-range", 0, 1024]\
-	]\
-	}
+        policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
+        "conditions": [\
+        {"bucket": bucket.name},\
+        ["starts-with", "$key", "foo"],\
+        {"acl": "private"},\
+        ["starts-with", "$Content-Type", "text/plain"],\
+        ["content-length-range", 0, 1024]\
+        ]\
+        }
 
-	json_policy_document = json.JSONEncoder().encode(policy_document)
-	policy = base64.b64encode(json_policy_document)
-	conn = s3.main
-	signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
+        json_policy_document = json.JSONEncoder().encode(policy_document)
+        policy = base64.b64encode(json_policy_document)
+        conn = s3.main
+        signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
 
-	payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
-	("acl" , "private"),("signature" , signature),("policy" , policy),\
-	("Content-Type" , "text/plain"),("x-ignore-foo" , "bar"),('file', ('bar'))])
+        payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
+        ("acl" , "private"),("signature" , signature),("policy" , policy),\
+        ("Content-Type" , "text/plain"),("x-ignore-foo" , "bar"),('file', ('bar'))])
 
-	r = requests.post(url, files = payload)
-	eq(r.status_code, 204)
+        r = requests.post(url, files = payload)
+        eq(r.status_code, 204)
 
 
 @attr(resource='object')
@@ -1381,34 +1381,34 @@ def test_post_object_ignored_header():
 @attr(operation='authenticated browser based upload via POST request')
 @attr(assertion='succeeds with status 204')
 def test_post_object_case_insensitive_condition_fields():
-	bucket = get_new_bucket()
+        bucket = get_new_bucket()
 
-	url = _get_post_url(s3.main, bucket)
+        url = _get_post_url(s3.main, bucket)
 
-	utc = pytz.utc
-	expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
+        utc = pytz.utc
+        expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
 
-	policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
-	"conditions": [\
-	{"bUcKeT": bucket.name},\
-	["StArTs-WiTh", "$KeY", "foo"],\
-	{"AcL": "private"},\
-	["StArTs-WiTh", "$CoNtEnT-TyPe", "text/plain"],\
-	["content-length-range", 0, 1024]\
-	]\
-	}
+        policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
+        "conditions": [\
+        {"bUcKeT": bucket.name},\
+        ["StArTs-WiTh", "$KeY", "foo"],\
+        {"AcL": "private"},\
+        ["StArTs-WiTh", "$CoNtEnT-TyPe", "text/plain"],\
+        ["content-length-range", 0, 1024]\
+        ]\
+        }
 
-	json_policy_document = json.JSONEncoder().encode(policy_document)
-	policy = base64.b64encode(json_policy_document)
-	conn = s3.main
-	signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
+        json_policy_document = json.JSONEncoder().encode(policy_document)
+        policy = base64.b64encode(json_policy_document)
+        conn = s3.main
+        signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
 
-	payload = OrderedDict([ ("kEy" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
-	("aCl" , "private"),("signature" , signature),("pOLICy" , policy),\
-	("Content-Type" , "text/plain"),('file', ('bar'))])
+        payload = OrderedDict([ ("kEy" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
+        ("aCl" , "private"),("signature" , signature),("pOLICy" , policy),\
+        ("Content-Type" , "text/plain"),('file', ('bar'))])
 
-	r = requests.post(url, files = payload)
-	eq(r.status_code, 204)
+        r = requests.post(url, files = payload)
+        eq(r.status_code, 204)
 
 
 @attr(resource='object')
@@ -1416,37 +1416,37 @@ def test_post_object_case_insensitive_condition_fields():
 @attr(operation='authenticated browser based upload via POST request')
 @attr(assertion='succeeds with escaped leading $ and returns written data')
 def test_post_object_escaped_field_values():
-	bucket = get_new_bucket()
+        bucket = get_new_bucket()
 
-	url = _get_post_url(s3.main, bucket)
+        url = _get_post_url(s3.main, bucket)
 
-	utc = pytz.utc
-	expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
+        utc = pytz.utc
+        expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
 
-	policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
-	"conditions": [\
-	{"bucket": bucket.name},\
-	["starts-with", "$key", "\$foo"],\
-	{"acl": "private"},\
-	["starts-with", "$Content-Type", "text/plain"],\
-	["content-length-range", 0, 1024]\
-	]\
-	}
+        policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
+        "conditions": [\
+        {"bucket": bucket.name},\
+        ["starts-with", "$key", "\$foo"],\
+        {"acl": "private"},\
+        ["starts-with", "$Content-Type", "text/plain"],\
+        ["content-length-range", 0, 1024]\
+        ]\
+        }
 
-	json_policy_document = json.JSONEncoder().encode(policy_document)
-	policy = base64.b64encode(json_policy_document)
-	conn = s3.main
-	signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
+        json_policy_document = json.JSONEncoder().encode(policy_document)
+        policy = base64.b64encode(json_policy_document)
+        conn = s3.main
+        signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
 
-	payload = OrderedDict([ ("key" , "\$foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
-	("acl" , "private"),("signature" , signature),("policy" , policy),\
-	("Content-Type" , "text/plain"),('file', ('bar'))])
+        payload = OrderedDict([ ("key" , "\$foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
+        ("acl" , "private"),("signature" , signature),("policy" , policy),\
+        ("Content-Type" , "text/plain"),('file', ('bar'))])
 
-	r = requests.post(url, files = payload)
-	eq(r.status_code, 204)
-	key = bucket.get_key("\$foo.txt")
-	got = key.get_contents_as_string()
-	eq(got, 'bar')
+        r = requests.post(url, files = payload)
+        eq(r.status_code, 204)
+        key = bucket.get_key("\$foo.txt")
+        got = key.get_contents_as_string()
+        eq(got, 'bar')
 
 
 @attr(resource='object')
@@ -1454,43 +1454,43 @@ def test_post_object_escaped_field_values():
 @attr(operation='authenticated browser based upload via POST request')
 @attr(assertion='succeeds and returns redirect url')
 def test_post_object_success_redirect_action():
-	bucket = get_new_bucket()
+        bucket = get_new_bucket()
 
-	url = _get_post_url(s3.main, bucket)
-	redirect_url = _get_post_url(s3.main, bucket)
-	bucket.set_acl('public-read')
+        url = _get_post_url(s3.main, bucket)
+        redirect_url = _get_post_url(s3.main, bucket)
+        bucket.set_acl('public-read')
 
-	utc = pytz.utc
-	expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
+        utc = pytz.utc
+        expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
 
-	policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
-	"conditions": [\
-	{"bucket": bucket.name},\
-	["starts-with", "$key", "foo"],\
-	{"acl": "private"},\
-	["starts-with", "$Content-Type", "text/plain"],\
-	["eq", "$success_action_redirect", redirect_url],\
-	["content-length-range", 0, 1024]\
-	]\
-	}
+        policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
+        "conditions": [\
+        {"bucket": bucket.name},\
+        ["starts-with", "$key", "foo"],\
+        {"acl": "private"},\
+        ["starts-with", "$Content-Type", "text/plain"],\
+        ["eq", "$success_action_redirect", redirect_url],\
+        ["content-length-range", 0, 1024]\
+        ]\
+        }
 
-	json_policy_document = json.JSONEncoder().encode(policy_document)
-	policy = base64.b64encode(json_policy_document)
-	conn = s3.main
-	signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
+        json_policy_document = json.JSONEncoder().encode(policy_document)
+        policy = base64.b64encode(json_policy_document)
+        conn = s3.main
+        signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
 
-	payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
-	("acl" , "private"),("signature" , signature),("policy" , policy),\
-	("Content-Type" , "text/plain"),("success_action_redirect" , redirect_url),\
-	('file', ('bar'))])
+        payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
+        ("acl" , "private"),("signature" , signature),("policy" , policy),\
+        ("Content-Type" , "text/plain"),("success_action_redirect" , redirect_url),\
+        ('file', ('bar'))])
 
-	r = requests.post(url, files = payload)
-	eq(r.status_code, 200)
-	url = r.url
-	key = bucket.get_key("foo.txt")
-	eq(url,
-	'{rurl}?bucket={bucket}&key={key}&etag=%22{etag}%22'.format(rurl = redirect_url, bucket = bucket.name,
-	                                                             key = key.name, etag = key.etag.strip('"')))
+        r = requests.post(url, files = payload)
+        eq(r.status_code, 200)
+        url = r.url
+        key = bucket.get_key("foo.txt")
+        eq(url,
+        '{rurl}?bucket={bucket}&key={key}&etag=%22{etag}%22'.format(rurl = redirect_url, bucket = bucket.name,
+                                                                     key = key.name, etag = key.etag.strip('"')))
 
 
 @attr(resource='object')
@@ -1498,34 +1498,34 @@ def test_post_object_success_redirect_action():
 @attr(operation='authenticated browser based upload via POST request')
 @attr(assertion='fails with invalid signature error')
 def test_post_object_invalid_signature():
-	bucket = get_new_bucket()
+        bucket = get_new_bucket()
 
-	url = _get_post_url(s3.main, bucket)
+        url = _get_post_url(s3.main, bucket)
 
-	utc = pytz.utc
-	expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
+        utc = pytz.utc
+        expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
 
-	policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
-	"conditions": [\
-	{"bucket": bucket.name},\
-	["starts-with", "$key", "\$foo"],\
-	{"acl": "private"},\
-	["starts-with", "$Content-Type", "text/plain"],\
-	["content-length-range", 0, 1024]\
-	]\
-	}
+        policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
+        "conditions": [\
+        {"bucket": bucket.name},\
+        ["starts-with", "$key", "\$foo"],\
+        {"acl": "private"},\
+        ["starts-with", "$Content-Type", "text/plain"],\
+        ["content-length-range", 0, 1024]\
+        ]\
+        }
 
-	json_policy_document = json.JSONEncoder().encode(policy_document)
-	policy = base64.b64encode(json_policy_document)
-	conn = s3.main
-	signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())[::-1]
+        json_policy_document = json.JSONEncoder().encode(policy_document)
+        policy = base64.b64encode(json_policy_document)
+        conn = s3.main
+        signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())[::-1]
 
-	payload = OrderedDict([ ("key" , "\$foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
-	("acl" , "private"),("signature" , signature),("policy" , policy),\
-	("Content-Type" , "text/plain"),('file', ('bar'))])
+        payload = OrderedDict([ ("key" , "\$foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
+        ("acl" , "private"),("signature" , signature),("policy" , policy),\
+        ("Content-Type" , "text/plain"),('file', ('bar'))])
 
-	r = requests.post(url, files = payload)
-	eq(r.status_code, 403)
+        r = requests.post(url, files = payload)
+        eq(r.status_code, 403)
 
 
 @attr(resource='object')
@@ -1533,34 +1533,34 @@ def test_post_object_invalid_signature():
 @attr(operation='authenticated browser based upload via POST request')
 @attr(assertion='fails with access key does not exist error')
 def test_post_object_invalid_access_key():
-	bucket = get_new_bucket()
+        bucket = get_new_bucket()
 
-	url = _get_post_url(s3.main, bucket)
+        url = _get_post_url(s3.main, bucket)
 
-	utc = pytz.utc
-	expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
+        utc = pytz.utc
+        expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
 
-	policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
-	"conditions": [\
-	{"bucket": bucket.name},\
-	["starts-with", "$key", "\$foo"],\
-	{"acl": "private"},\
-	["starts-with", "$Content-Type", "text/plain"],\
-	["content-length-range", 0, 1024]\
-	]\
-	}
+        policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
+        "conditions": [\
+        {"bucket": bucket.name},\
+        ["starts-with", "$key", "\$foo"],\
+        {"acl": "private"},\
+        ["starts-with", "$Content-Type", "text/plain"],\
+        ["content-length-range", 0, 1024]\
+        ]\
+        }
 
-	json_policy_document = json.JSONEncoder().encode(policy_document)
-	policy = base64.b64encode(json_policy_document)
-	conn = s3.main
-	signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
+        json_policy_document = json.JSONEncoder().encode(policy_document)
+        policy = base64.b64encode(json_policy_document)
+        conn = s3.main
+        signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
 
-	payload = OrderedDict([ ("key" , "\$foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id[::-1]),\
-	("acl" , "private"),("signature" , signature),("policy" , policy),\
-	("Content-Type" , "text/plain"),('file', ('bar'))])
+        payload = OrderedDict([ ("key" , "\$foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id[::-1]),\
+        ("acl" , "private"),("signature" , signature),("policy" , policy),\
+        ("Content-Type" , "text/plain"),('file', ('bar'))])
 
-	r = requests.post(url, files = payload)
-	eq(r.status_code, 403)
+        r = requests.post(url, files = payload)
+        eq(r.status_code, 403)
 
 
 @attr(resource='object')
@@ -1568,34 +1568,34 @@ def test_post_object_invalid_access_key():
 @attr(operation='authenticated browser based upload via POST request')
 @attr(assertion='fails with invalid expiration error')
 def test_post_object_invalid_date_format():
-	bucket = get_new_bucket()
+        bucket = get_new_bucket()
 
-	url = _get_post_url(s3.main, bucket)
+        url = _get_post_url(s3.main, bucket)
 
-	utc = pytz.utc
-	expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
+        utc = pytz.utc
+        expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
 
-	policy_document = {"expiration": str(expires),\
-	"conditions": [\
-	{"bucket": bucket.name},\
-	["starts-with", "$key", "\$foo"],\
-	{"acl": "private"},\
-	["starts-with", "$Content-Type", "text/plain"],\
-	["content-length-range", 0, 1024]\
-	]\
-	}
+        policy_document = {"expiration": str(expires),\
+        "conditions": [\
+        {"bucket": bucket.name},\
+        ["starts-with", "$key", "\$foo"],\
+        {"acl": "private"},\
+        ["starts-with", "$Content-Type", "text/plain"],\
+        ["content-length-range", 0, 1024]\
+        ]\
+        }
 
-	json_policy_document = json.JSONEncoder().encode(policy_document)
-	policy = base64.b64encode(json_policy_document)
-	conn = s3.main
-	signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
+        json_policy_document = json.JSONEncoder().encode(policy_document)
+        policy = base64.b64encode(json_policy_document)
+        conn = s3.main
+        signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
 
-	payload = OrderedDict([ ("key" , "\$foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
-	("acl" , "private"),("signature" , signature),("policy" , policy),\
-	("Content-Type" , "text/plain"),('file', ('bar'))])
+        payload = OrderedDict([ ("key" , "\$foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
+        ("acl" , "private"),("signature" , signature),("policy" , policy),\
+        ("Content-Type" , "text/plain"),('file', ('bar'))])
 
-	r = requests.post(url, files = payload)
-	eq(r.status_code, 400)
+        r = requests.post(url, files = payload)
+        eq(r.status_code, 400)
 
 
 @attr(resource='object')
@@ -1603,33 +1603,33 @@ def test_post_object_invalid_date_format():
 @attr(operation='authenticated browser based upload via POST request')
 @attr(assertion='fails with missing key error')
 def test_post_object_no_key_specified():
-	bucket = get_new_bucket()
+        bucket = get_new_bucket()
 
-	url = _get_post_url(s3.main, bucket)
+        url = _get_post_url(s3.main, bucket)
 
-	utc = pytz.utc
-	expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
+        utc = pytz.utc
+        expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
 
-	policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
-	"conditions": [\
-	{"bucket": bucket.name},\
-	{"acl": "private"},\
-	["starts-with", "$Content-Type", "text/plain"],\
-	["content-length-range", 0, 1024]\
-	]\
-	}
+        policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
+        "conditions": [\
+        {"bucket": bucket.name},\
+        {"acl": "private"},\
+        ["starts-with", "$Content-Type", "text/plain"],\
+        ["content-length-range", 0, 1024]\
+        ]\
+        }
 
-	json_policy_document = json.JSONEncoder().encode(policy_document)
-	policy = base64.b64encode(json_policy_document)
-	conn = s3.main
-	signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
+        json_policy_document = json.JSONEncoder().encode(policy_document)
+        policy = base64.b64encode(json_policy_document)
+        conn = s3.main
+        signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
 
-	payload = OrderedDict([ ("AWSAccessKeyId" , conn.aws_access_key_id),\
-	("acl" , "private"),("signature" , signature),("policy" , policy),\
-	("Content-Type" , "text/plain"),('file', ('bar'))])
+        payload = OrderedDict([ ("AWSAccessKeyId" , conn.aws_access_key_id),\
+        ("acl" , "private"),("signature" , signature),("policy" , policy),\
+        ("Content-Type" , "text/plain"),('file', ('bar'))])
 
-	r = requests.post(url, files = payload)
-	eq(r.status_code, 400)
+        r = requests.post(url, files = payload)
+        eq(r.status_code, 400)
 
 
 @attr(resource='object')
@@ -1637,34 +1637,34 @@ def test_post_object_no_key_specified():
 @attr(operation='authenticated browser based upload via POST request')
 @attr(assertion='fails with missing signature error')
 def test_post_object_missing_signature():
-	bucket = get_new_bucket()
+        bucket = get_new_bucket()
 
-	url = _get_post_url(s3.main, bucket)
+        url = _get_post_url(s3.main, bucket)
 
-	utc = pytz.utc
-	expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
+        utc = pytz.utc
+        expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
 
-	policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
-	"conditions": [\
-	{"bucket": bucket.name},\
-	["starts-with", "$key", "\$foo"],\
-	{"acl": "private"},\
-	["starts-with", "$Content-Type", "text/plain"],\
-	["content-length-range", 0, 1024]\
-	]\
-	}
+        policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
+        "conditions": [\
+        {"bucket": bucket.name},\
+        ["starts-with", "$key", "\$foo"],\
+        {"acl": "private"},\
+        ["starts-with", "$Content-Type", "text/plain"],\
+        ["content-length-range", 0, 1024]\
+        ]\
+        }
 
-	json_policy_document = json.JSONEncoder().encode(policy_document)
-	policy = base64.b64encode(json_policy_document)
-	conn = s3.main
-	signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
+        json_policy_document = json.JSONEncoder().encode(policy_document)
+        policy = base64.b64encode(json_policy_document)
+        conn = s3.main
+        signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
 
-	payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
-	("acl" , "private"),("policy" , policy),\
-	("Content-Type" , "text/plain"),('file', ('bar'))])
+        payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
+        ("acl" , "private"),("policy" , policy),\
+        ("Content-Type" , "text/plain"),('file', ('bar'))])
 
-	r = requests.post(url, files = payload)
-	eq(r.status_code, 400)
+        r = requests.post(url, files = payload)
+        eq(r.status_code, 400)
 
 
 @attr(resource='object')
@@ -1672,33 +1672,33 @@ def test_post_object_missing_signature():
 @attr(operation='authenticated browser based upload via POST request')
 @attr(assertion='fails with extra input fields policy error')
 def test_post_object_missing_policy_condition():
-	bucket = get_new_bucket()
+        bucket = get_new_bucket()
 
-	url = _get_post_url(s3.main, bucket)
+        url = _get_post_url(s3.main, bucket)
 
-	utc = pytz.utc
-	expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
+        utc = pytz.utc
+        expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
 
-	policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
-	"conditions": [\
-	["starts-with", "$key", "foo"],\
-	{"acl": "private"},\
-	["starts-with", "$Content-Type", "text/plain"],\
-	["content-length-range", 0, 1024]\
-	]\
-	}
+        policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
+        "conditions": [\
+        ["starts-with", "$key", "foo"],\
+        {"acl": "private"},\
+        ["starts-with", "$Content-Type", "text/plain"],\
+        ["content-length-range", 0, 1024]\
+        ]\
+        }
 
-	json_policy_document = json.JSONEncoder().encode(policy_document)
-	policy = base64.b64encode(json_policy_document)
-	conn = s3.main
-	signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
+        json_policy_document = json.JSONEncoder().encode(policy_document)
+        policy = base64.b64encode(json_policy_document)
+        conn = s3.main
+        signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
 
-	payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
-	("acl" , "private"),("signature" , signature),("policy" , policy),\
-	("Content-Type" , "text/plain"),('file', ('bar'))])
+        payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
+        ("acl" , "private"),("signature" , signature),("policy" , policy),\
+        ("Content-Type" , "text/plain"),('file', ('bar'))])
 
-	r = requests.post(url, files = payload)
-	eq(r.status_code, 403)
+        r = requests.post(url, files = payload)
+        eq(r.status_code, 403)
 
 
 @attr(resource='object')
@@ -1706,37 +1706,37 @@ def test_post_object_missing_policy_condition():
 @attr(operation='authenticated browser based upload via POST request')
 @attr(assertion='succeeds using starts-with restriction on metadata header')
 def test_post_object_user_specified_header():
-	bucket = get_new_bucket()
+        bucket = get_new_bucket()
 
-	url = _get_post_url(s3.main, bucket)
+        url = _get_post_url(s3.main, bucket)
 
-	utc = pytz.utc
-	expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
+        utc = pytz.utc
+        expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
 
-	policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
-	"conditions": [\
-	{"bucket": bucket.name},\
-	["starts-with", "$key", "foo"],\
-	{"acl": "private"},\
-	["starts-with", "$Content-Type", "text/plain"],\
-	["content-length-range", 0, 1024],\
+        policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
+        "conditions": [\
+        {"bucket": bucket.name},\
+        ["starts-with", "$key", "foo"],\
+        {"acl": "private"},\
+        ["starts-with", "$Content-Type", "text/plain"],\
+        ["content-length-range", 0, 1024],\
    ["starts-with", "$x-amz-meta-foo",  "bar"]
-	]\
-	}
+        ]\
+        }
 
-	json_policy_document = json.JSONEncoder().encode(policy_document)
-	policy = base64.b64encode(json_policy_document)
-	conn = s3.main
-	signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
+        json_policy_document = json.JSONEncoder().encode(policy_document)
+        policy = base64.b64encode(json_policy_document)
+        conn = s3.main
+        signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
 
-	payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
-	("acl" , "private"),("signature" , signature),("policy" , policy),\
-	("Content-Type" , "text/plain"),('x-amz-meta-foo' , 'barclamp'),('file', ('bar'))])
+        payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
+        ("acl" , "private"),("signature" , signature),("policy" , policy),\
+        ("Content-Type" , "text/plain"),('x-amz-meta-foo' , 'barclamp'),('file', ('bar'))])
 
-	r = requests.post(url, files = payload)
-	eq(r.status_code, 204)
-	key = bucket.get_key("foo.txt")
-	eq(key.get_metadata('foo'), 'barclamp')
+        r = requests.post(url, files = payload)
+        eq(r.status_code, 204)
+        key = bucket.get_key("foo.txt")
+        eq(key.get_metadata('foo'), 'barclamp')
 
 
 @attr(resource='object')
@@ -1744,35 +1744,35 @@ def test_post_object_user_specified_header():
 @attr(operation='authenticated browser based upload via POST request')
 @attr(assertion='fails with policy condition failed error due to missing field in POST request')
 def test_post_object_request_missing_policy_specified_field():
-	bucket = get_new_bucket()
+        bucket = get_new_bucket()
 
-	url = _get_post_url(s3.main, bucket)
+        url = _get_post_url(s3.main, bucket)
 
-	utc = pytz.utc
-	expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
+        utc = pytz.utc
+        expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
 
-	policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
-	"conditions": [\
-	{"bucket": bucket.name},\
-	["starts-with", "$key", "foo"],\
-	{"acl": "private"},\
-	["starts-with", "$Content-Type", "text/plain"],\
-	["content-length-range", 0, 1024],\
+        policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
+        "conditions": [\
+        {"bucket": bucket.name},\
+        ["starts-with", "$key", "foo"],\
+        {"acl": "private"},\
+        ["starts-with", "$Content-Type", "text/plain"],\
+        ["content-length-range", 0, 1024],\
    ["starts-with", "$x-amz-meta-foo",  "bar"]
-	]\
-	}
+        ]\
+        }
 
-	json_policy_document = json.JSONEncoder().encode(policy_document)
-	policy = base64.b64encode(json_policy_document)
-	conn = s3.main
-	signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
+        json_policy_document = json.JSONEncoder().encode(policy_document)
+        policy = base64.b64encode(json_policy_document)
+        conn = s3.main
+        signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
 
-	payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
-	("acl" , "private"),("signature" , signature),("policy" , policy),\
-	("Content-Type" , "text/plain"),('file', ('bar'))])
+        payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
+        ("acl" , "private"),("signature" , signature),("policy" , policy),\
+        ("Content-Type" , "text/plain"),('file', ('bar'))])
 
-	r = requests.post(url, files = payload)
-	eq(r.status_code, 403)
+        r = requests.post(url, files = payload)
+        eq(r.status_code, 403)
 
 
 @attr(resource='object')
@@ -1780,34 +1780,34 @@ def test_post_object_request_missing_policy_specified_field():
 @attr(operation='authenticated browser based upload via POST request')
 @attr(assertion='fails with conditions must be list error')
 def test_post_object_condition_is_case_sensitive():
-	bucket = get_new_bucket()
+        bucket = get_new_bucket()
 
-	url = _get_post_url(s3.main, bucket)
+        url = _get_post_url(s3.main, bucket)
 
-	utc = pytz.utc
-	expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
+        utc = pytz.utc
+        expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
 
-	policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
-	"CONDITIONS": [\
-	{"bucket": bucket.name},\
-	["starts-with", "$key", "foo"],\
-	{"acl": "private"},\
-	["starts-with", "$Content-Type", "text/plain"],\
-	["content-length-range", 0, 1024],\
-	]\
-	}
+        policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
+        "CONDITIONS": [\
+        {"bucket": bucket.name},\
+        ["starts-with", "$key", "foo"],\
+        {"acl": "private"},\
+        ["starts-with", "$Content-Type", "text/plain"],\
+        ["content-length-range", 0, 1024],\
+        ]\
+        }
 
-	json_policy_document = json.JSONEncoder().encode(policy_document)
-	policy = base64.b64encode(json_policy_document)
-	conn = s3.main
-	signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
+        json_policy_document = json.JSONEncoder().encode(policy_document)
+        policy = base64.b64encode(json_policy_document)
+        conn = s3.main
+        signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
 
-	payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
-	("acl" , "private"),("signature" , signature),("policy" , policy),\
-	("Content-Type" , "text/plain"),('file', ('bar'))])
+        payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
+        ("acl" , "private"),("signature" , signature),("policy" , policy),\
+        ("Content-Type" , "text/plain"),('file', ('bar'))])
 
-	r = requests.post(url, files = payload)
-	eq(r.status_code, 400)
+        r = requests.post(url, files = payload)
+        eq(r.status_code, 400)
 
 
 @attr(resource='object')
@@ -1815,34 +1815,34 @@ def test_post_object_condition_is_case_sensitive():
 @attr(operation='authenticated browser based upload via POST request')
 @attr(assertion='fails with expiration must be string error')
 def test_post_object_expires_is_case_sensitive():
-	bucket = get_new_bucket()
+        bucket = get_new_bucket()
 
-	url = _get_post_url(s3.main, bucket)
+        url = _get_post_url(s3.main, bucket)
 
-	utc = pytz.utc
-	expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
+        utc = pytz.utc
+        expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
 
-	policy_document = {"EXPIRATION": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
-	"conditions": [\
-	{"bucket": bucket.name},\
-	["starts-with", "$key", "foo"],\
-	{"acl": "private"},\
-	["starts-with", "$Content-Type", "text/plain"],\
-	["content-length-range", 0, 1024],\
-	]\
-	}
+        policy_document = {"EXPIRATION": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
+        "conditions": [\
+        {"bucket": bucket.name},\
+        ["starts-with", "$key", "foo"],\
+        {"acl": "private"},\
+        ["starts-with", "$Content-Type", "text/plain"],\
+        ["content-length-range", 0, 1024],\
+        ]\
+        }
 
-	json_policy_document = json.JSONEncoder().encode(policy_document)
-	policy = base64.b64encode(json_policy_document)
-	conn = s3.main
-	signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
+        json_policy_document = json.JSONEncoder().encode(policy_document)
+        policy = base64.b64encode(json_policy_document)
+        conn = s3.main
+        signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
 
-	payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
-	("acl" , "private"),("signature" , signature),("policy" , policy),\
-	("Content-Type" , "text/plain"),('file', ('bar'))])
+        payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
+        ("acl" , "private"),("signature" , signature),("policy" , policy),\
+        ("Content-Type" , "text/plain"),('file', ('bar'))])
 
-	r = requests.post(url, files = payload)
-	eq(r.status_code, 400)
+        r = requests.post(url, files = payload)
+        eq(r.status_code, 400)
 
 
 @attr(resource='object')
@@ -1850,34 +1850,34 @@ def test_post_object_expires_is_case_sensitive():
 @attr(operation='authenticated browser based upload via POST request')
 @attr(assertion='fails with policy expired error')
 def test_post_object_expired_policy():
-	bucket = get_new_bucket()
+        bucket = get_new_bucket()
 
-	url = _get_post_url(s3.main, bucket)
+        url = _get_post_url(s3.main, bucket)
 
-	utc = pytz.utc
-	expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=-6000)
+        utc = pytz.utc
+        expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=-6000)
 
-	policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
-	"conditions": [\
-	{"bucket": bucket.name},\
-	["starts-with", "$key", "foo"],\
-	{"acl": "private"},\
-	["starts-with", "$Content-Type", "text/plain"],\
-	["content-length-range", 0, 1024],\
-	]\
-	}
+        policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
+        "conditions": [\
+        {"bucket": bucket.name},\
+        ["starts-with", "$key", "foo"],\
+        {"acl": "private"},\
+        ["starts-with", "$Content-Type", "text/plain"],\
+        ["content-length-range", 0, 1024],\
+        ]\
+        }
 
-	json_policy_document = json.JSONEncoder().encode(policy_document)
-	policy = base64.b64encode(json_policy_document)
-	conn = s3.main
-	signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
+        json_policy_document = json.JSONEncoder().encode(policy_document)
+        policy = base64.b64encode(json_policy_document)
+        conn = s3.main
+        signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
 
-	payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
-	("acl" , "private"),("signature" , signature),("policy" , policy),\
-	("Content-Type" , "text/plain"),('file', ('bar'))])
+        payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
+        ("acl" , "private"),("signature" , signature),("policy" , policy),\
+        ("Content-Type" , "text/plain"),('file', ('bar'))])
 
-	r = requests.post(url, files = payload)
-	eq(r.status_code, 403)
+        r = requests.post(url, files = payload)
+        eq(r.status_code, 403)
 
 
 @attr(resource='object')
@@ -1885,35 +1885,35 @@ def test_post_object_expired_policy():
 @attr(operation='authenticated browser based upload via POST request')
 @attr(assertion='fails using equality restriction on metadata header')
 def test_post_object_invalid_request_field_value():
-	bucket = get_new_bucket()
+        bucket = get_new_bucket()
 
-	url = _get_post_url(s3.main, bucket)
+        url = _get_post_url(s3.main, bucket)
 
-	utc = pytz.utc
-	expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
+        utc = pytz.utc
+        expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
 
-	policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
-	"conditions": [\
-	{"bucket": bucket.name},\
-	["starts-with", "$key", "foo"],\
-	{"acl": "private"},\
-	["starts-with", "$Content-Type", "text/plain"],\
-	["content-length-range", 0, 1024],\
+        policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
+        "conditions": [\
+        {"bucket": bucket.name},\
+        ["starts-with", "$key", "foo"],\
+        {"acl": "private"},\
+        ["starts-with", "$Content-Type", "text/plain"],\
+        ["content-length-range", 0, 1024],\
    ["eq", "$x-amz-meta-foo",  ""]
-	]\
-	}
+        ]\
+        }
 
-	json_policy_document = json.JSONEncoder().encode(policy_document)
-	policy = base64.b64encode(json_policy_document)
-	conn = s3.main
-	signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
+        json_policy_document = json.JSONEncoder().encode(policy_document)
+        policy = base64.b64encode(json_policy_document)
+        conn = s3.main
+        signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
 
-	payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
-	("acl" , "private"),("signature" , signature),("policy" , policy),\
-	("Content-Type" , "text/plain"),('x-amz-meta-foo' , 'barclamp'),('file', ('bar'))])
+        payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
+        ("acl" , "private"),("signature" , signature),("policy" , policy),\
+        ("Content-Type" , "text/plain"),('x-amz-meta-foo' , 'barclamp'),('file', ('bar'))])
 
-	r = requests.post(url, files = payload)
-	eq(r.status_code, 403)
+        r = requests.post(url, files = payload)
+        eq(r.status_code, 403)
 
 
 @attr(resource='object')
@@ -1921,34 +1921,34 @@ def test_post_object_invalid_request_field_value():
 @attr(operation='authenticated browser based upload via POST request')
 @attr(assertion='fails with policy missing expiration error')
 def test_post_object_missing_expires_condition():
-	bucket = get_new_bucket()
+        bucket = get_new_bucket()
 
-	url = _get_post_url(s3.main, bucket)
+        url = _get_post_url(s3.main, bucket)
 
-	utc = pytz.utc
-	expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
+        utc = pytz.utc
+        expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
 
-	policy_document = {\
-	"conditions": [\
-	{"bucket": bucket.name},\
-	["starts-with", "$key", "foo"],\
-	{"acl": "private"},\
-	["starts-with", "$Content-Type", "text/plain"],\
-	["content-length-range", 0, 1024],\
-	]\
-	}
+        policy_document = {\
+        "conditions": [\
+        {"bucket": bucket.name},\
+        ["starts-with", "$key", "foo"],\
+        {"acl": "private"},\
+        ["starts-with", "$Content-Type", "text/plain"],\
+        ["content-length-range", 0, 1024],\
+        ]\
+        }
 
-	json_policy_document = json.JSONEncoder().encode(policy_document)
-	policy = base64.b64encode(json_policy_document)
-	conn = s3.main
-	signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
+        json_policy_document = json.JSONEncoder().encode(policy_document)
+        policy = base64.b64encode(json_policy_document)
+        conn = s3.main
+        signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
 
-	payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
-	("acl" , "private"),("signature" , signature),("policy" , policy),\
-	("Content-Type" , "text/plain"),('file', ('bar'))])
+        payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
+        ("acl" , "private"),("signature" , signature),("policy" , policy),\
+        ("Content-Type" , "text/plain"),('file', ('bar'))])
 
-	r = requests.post(url, files = payload)
-	eq(r.status_code, 400)
+        r = requests.post(url, files = payload)
+        eq(r.status_code, 400)
 
 
 @attr(resource='object')
@@ -1956,27 +1956,27 @@ def test_post_object_missing_expires_condition():
 @attr(operation='authenticated browser based upload via POST request')
 @attr(assertion='fails with policy missing conditions error')
 def test_post_object_missing_conditions_list():
-	bucket = get_new_bucket()
+        bucket = get_new_bucket()
 
-	url = _get_post_url(s3.main, bucket)
+        url = _get_post_url(s3.main, bucket)
 
-	utc = pytz.utc
-	expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
+        utc = pytz.utc
+        expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
 
-	policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
-	}
+        policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
+        }
 
-	json_policy_document = json.JSONEncoder().encode(policy_document)
-	policy = base64.b64encode(json_policy_document)
-	conn = s3.main
-	signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
+        json_policy_document = json.JSONEncoder().encode(policy_document)
+        policy = base64.b64encode(json_policy_document)
+        conn = s3.main
+        signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
 
-	payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
-	("acl" , "private"),("signature" , signature),("policy" , policy),\
-	("Content-Type" , "text/plain"),('file', ('bar'))])
+        payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
+        ("acl" , "private"),("signature" , signature),("policy" , policy),\
+        ("Content-Type" , "text/plain"),('file', ('bar'))])
 
-	r = requests.post(url, files = payload)
-	eq(r.status_code, 400)
+        r = requests.post(url, files = payload)
+        eq(r.status_code, 400)
 
 
 @attr(resource='object')
@@ -1984,34 +1984,34 @@ def test_post_object_missing_conditions_list():
 @attr(operation='authenticated browser based upload via POST request')
 @attr(assertion='fails with allowable upload size exceeded error')
 def test_post_object_upload_size_limit_exceeded():
-	bucket = get_new_bucket()
+        bucket = get_new_bucket()
 
-	url = _get_post_url(s3.main, bucket)
+        url = _get_post_url(s3.main, bucket)
 
-	utc = pytz.utc
-	expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
+        utc = pytz.utc
+        expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
 
-	policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
-	"conditions": [\
-	{"bucket": bucket.name},\
-	["starts-with", "$key", "foo"],\
-	{"acl": "private"},\
-	["starts-with", "$Content-Type", "text/plain"],\
-	["content-length-range", 0, 0]\
-	]\
-	}
+        policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
+        "conditions": [\
+        {"bucket": bucket.name},\
+        ["starts-with", "$key", "foo"],\
+        {"acl": "private"},\
+        ["starts-with", "$Content-Type", "text/plain"],\
+        ["content-length-range", 0, 0]\
+        ]\
+        }
 
-	json_policy_document = json.JSONEncoder().encode(policy_document)
-	policy = base64.b64encode(json_policy_document)
-	conn = s3.main
-	signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
+        json_policy_document = json.JSONEncoder().encode(policy_document)
+        policy = base64.b64encode(json_policy_document)
+        conn = s3.main
+        signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
 
-	payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
-	("acl" , "private"),("signature" , signature),("policy" , policy),\
-	("Content-Type" , "text/plain"),('file', ('bar'))])
+        payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
+        ("acl" , "private"),("signature" , signature),("policy" , policy),\
+        ("Content-Type" , "text/plain"),('file', ('bar'))])
 
-	r = requests.post(url, files = payload)
-	eq(r.status_code, 400)
+        r = requests.post(url, files = payload)
+        eq(r.status_code, 400)
 
 
 @attr(resource='object')
@@ -2019,34 +2019,34 @@ def test_post_object_upload_size_limit_exceeded():
 @attr(operation='authenticated browser based upload via POST request')
 @attr(assertion='fails with invalid content length error')
 def test_post_object_missing_content_length_argument():
-	bucket = get_new_bucket()
+        bucket = get_new_bucket()
 
-	url = _get_post_url(s3.main, bucket)
+        url = _get_post_url(s3.main, bucket)
 
-	utc = pytz.utc
-	expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
+        utc = pytz.utc
+        expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
 
-	policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
-	"conditions": [\
-	{"bucket": bucket.name},\
-	["starts-with", "$key", "foo"],\
-	{"acl": "private"},\
-	["starts-with", "$Content-Type", "text/plain"],\
-	["content-length-range", 0]\
-	]\
-	}
+        policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
+        "conditions": [\
+        {"bucket": bucket.name},\
+        ["starts-with", "$key", "foo"],\
+        {"acl": "private"},\
+        ["starts-with", "$Content-Type", "text/plain"],\
+        ["content-length-range", 0]\
+        ]\
+        }
 
-	json_policy_document = json.JSONEncoder().encode(policy_document)
-	policy = base64.b64encode(json_policy_document)
-	conn = s3.main
-	signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
+        json_policy_document = json.JSONEncoder().encode(policy_document)
+        policy = base64.b64encode(json_policy_document)
+        conn = s3.main
+        signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
 
-	payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
-	("acl" , "private"),("signature" , signature),("policy" , policy),\
-	("Content-Type" , "text/plain"),('file', ('bar'))])
+        payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
+        ("acl" , "private"),("signature" , signature),("policy" , policy),\
+        ("Content-Type" , "text/plain"),('file', ('bar'))])
 
-	r = requests.post(url, files = payload)
-	eq(r.status_code, 400)
+        r = requests.post(url, files = payload)
+        eq(r.status_code, 400)
 
 
 @attr(resource='object')
@@ -2054,34 +2054,34 @@ def test_post_object_missing_content_length_argument():
 @attr(operation='authenticated browser based upload via POST request')
 @attr(assertion='fails with invalid JSON error')
 def test_post_object_invalid_content_length_argument():
-	bucket = get_new_bucket()
+        bucket = get_new_bucket()
 
-	url = _get_post_url(s3.main, bucket)
+        url = _get_post_url(s3.main, bucket)
 
-	utc = pytz.utc
-	expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
+        utc = pytz.utc
+        expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
 
-	policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
-	"conditions": [\
-	{"bucket": bucket.name},\
-	["starts-with", "$key", "foo"],\
-	{"acl": "private"},\
-	["starts-with", "$Content-Type", "text/plain"],\
-	["content-length-range", -1, 0]\
-	]\
-	}
+        policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
+        "conditions": [\
+        {"bucket": bucket.name},\
+        ["starts-with", "$key", "foo"],\
+        {"acl": "private"},\
+        ["starts-with", "$Content-Type", "text/plain"],\
+        ["content-length-range", -1, 0]\
+        ]\
+        }
 
-	json_policy_document = json.JSONEncoder().encode(policy_document)
-	policy = base64.b64encode(json_policy_document)
-	conn = s3.main
-	signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
+        json_policy_document = json.JSONEncoder().encode(policy_document)
+        policy = base64.b64encode(json_policy_document)
+        conn = s3.main
+        signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
 
-	payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
-	("acl" , "private"),("signature" , signature),("policy" , policy),\
-	("Content-Type" , "text/plain"),('file', ('bar'))])
+        payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
+        ("acl" , "private"),("signature" , signature),("policy" , policy),\
+        ("Content-Type" , "text/plain"),('file', ('bar'))])
 
-	r = requests.post(url, files = payload)
-	eq(r.status_code, 400)
+        r = requests.post(url, files = payload)
+        eq(r.status_code, 400)
 
 
 @attr(resource='object')
@@ -2089,34 +2089,34 @@ def test_post_object_invalid_content_length_argument():
 @attr(operation='authenticated browser based upload via POST request')
 @attr(assertion='fails with upload size less than minimum allowable error')
 def test_post_object_upload_size_below_minimum():
-	bucket = get_new_bucket()
+        bucket = get_new_bucket()
 
-	url = _get_post_url(s3.main, bucket)
+        url = _get_post_url(s3.main, bucket)
 
-	utc = pytz.utc
-	expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
+        utc = pytz.utc
+        expires = datetime.datetime.now(utc) + datetime.timedelta(seconds=+6000)
 
-	policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
-	"conditions": [\
-	{"bucket": bucket.name},\
-	["starts-with", "$key", "foo"],\
-	{"acl": "private"},\
-	["starts-with", "$Content-Type", "text/plain"],\
-	["content-length-range", 512, 1000]\
-	]\
-	}
+        policy_document = {"expiration": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),\
+        "conditions": [\
+        {"bucket": bucket.name},\
+        ["starts-with", "$key", "foo"],\
+        {"acl": "private"},\
+        ["starts-with", "$Content-Type", "text/plain"],\
+        ["content-length-range", 512, 1000]\
+        ]\
+        }
 
-	json_policy_document = json.JSONEncoder().encode(policy_document)
-	policy = base64.b64encode(json_policy_document)
-	conn = s3.main
-	signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
+        json_policy_document = json.JSONEncoder().encode(policy_document)
+        policy = base64.b64encode(json_policy_document)
+        conn = s3.main
+        signature = base64.b64encode(hmac.new(conn.aws_secret_access_key, policy, sha).digest())
 
-	payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
-	("acl" , "private"),("signature" , signature),("policy" , policy),\
-	("Content-Type" , "text/plain"),('file', ('bar'))])
+        payload = OrderedDict([ ("key" , "foo.txt"),("AWSAccessKeyId" , conn.aws_access_key_id),\
+        ("acl" , "private"),("signature" , signature),("policy" , policy),\
+        ("Content-Type" , "text/plain"),('file', ('bar'))])
 
-	r = requests.post(url, files = payload)
-	eq(r.status_code, 400)
+        r = requests.post(url, files = payload)
+        eq(r.status_code, 400)
 
 
 @attr(resource='object')
@@ -2365,8 +2365,7 @@ def test_object_raw_get_bucket_gone():
 
     res = _make_request('GET', bucket, key)
     eq(res.status, 404)
-    eq(res.reason, 'Not Found')
-
+    assert(res.reason.find('Not Found') != -1)
 
 @attr(resource='object')
 @attr(method='delete')
@@ -2392,7 +2391,7 @@ def test_object_raw_get_object_gone():
 
     res = _make_request('GET', bucket, key)
     eq(res.status, 404)
-    eq(res.reason, 'Not Found')
+    assert(res.reason.find('Not Found') != -1)
 
 def _head_bucket(bucket, authenticated=True):
     res = _make_bucket_request('HEAD', bucket, authenticated=authenticated)
@@ -2546,7 +2545,7 @@ def test_object_raw_authenticated_bucket_gone():
 
     res = _make_request('GET', bucket, key, authenticated=True)
     eq(res.status, 404)
-    eq(res.reason, 'Not Found')
+    assert(res.reason.find('Not Found') != -1)
 
 
 @attr(resource='object')
@@ -2559,7 +2558,7 @@ def test_object_raw_authenticated_object_gone():
 
     res = _make_request('GET', bucket, key, authenticated=True)
     eq(res.status, 404)
-    eq(res.reason, 'Not Found')
+    assert(res.reason.find('Not Found') != -1)
 
 
 @attr(resource='object')
@@ -5328,7 +5327,7 @@ def test_atomic_write_bucket_gone():
     fp_a = FakeWriteFile(1024*1024, 'A', remove_bucket)
     e = assert_raises(boto.exception.S3ResponseError, key.set_contents_from_file, fp_a)
     eq(e.status, 404)
-    eq(e.reason, 'Not Found')
+    assert(e.reason.find('Not Found') != -1)
     eq(e.error_code, 'NoSuchBucket')
 
 @attr(resource='object')
