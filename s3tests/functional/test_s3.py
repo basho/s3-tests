@@ -564,7 +564,6 @@ def test_bucket_list_maxkeys_invalid():
     eq(e.error_code, 'InvalidArgument')
 
 
-@attr('fails_on_rgw')
 @attr(resource='bucket')
 @attr(method='get')
 @attr(operation='list all keys')
@@ -2402,15 +2401,6 @@ def _head_bucket(bucket, authenticated=True):
     eq(res.status, 200)
     eq(res.reason, 'OK')
 
-    obj_count = res.getheader('x-rgw-object-count')
-    assert obj_count is not None, "x-rgw-object-count wasn't returned"
-
-    bytes_used = res.getheader('x-rgw-bytes-used')
-    assert bytes_used is not None, "x-rgw-bytes-used wasn't returned"
-
-    return (int(obj_count), int(bytes_used))
-
-
 @attr(resource='bucket')
 @attr(method='head')
 @attr(operation='head bucket')
@@ -2427,19 +2417,9 @@ def test_bucket_head():
 @attr(assertion='extended information is getting updated')
 def test_bucket_head_extended():
     bucket = _setup_bucket_request('private')
-
-    (obj_count, bytes_used) = _head_bucket(bucket)
-
-    eq(obj_count, 0)
-    eq(bytes_used, 0)
-
+    _head_bucket(bucket)
     _create_keys(bucket, keys=['foo', 'bar', 'baz'])
-
-    (obj_count, bytes_used) = _head_bucket(bucket)
-
-    eq(obj_count, 3)
-
-    assert bytes_used > 0
+    _head_bucket(bucket)
 
 
 @attr(resource='bucket.acl')
@@ -2482,7 +2462,6 @@ def test_object_raw_authenticated():
 @attr(method='get')
 @attr(operation='authenticated on private bucket/private object with modified response headers')
 @attr(assertion='succeeds')
-@attr('fails_on_rgw')
 def test_object_raw_response_headers():
     (bucket, key) = _setup_request('private', 'private')
 
@@ -4200,8 +4179,10 @@ def test_list_buckets_anonymous():
     # allowing us to vary the calling format in testing.
     conn = _create_connection_bad_auth()
     conn._auth_handler = AnonymousAuth.AnonymousAuthHandler(None, None, None) # Doesn't need this
-    buckets = conn.get_all_buckets()
-    eq(len(buckets), 0)
+    e = assert_raises(boto.exception.S3ResponseError, conn.get_all_buckets)
+    eq(e.status, 403)
+    eq(e.reason, 'Forbidden')
+    eq(e.error_code, 'AccessDenied')
 
 @attr(resource='bucket')
 @attr(method='get')
@@ -4325,11 +4306,11 @@ def test_object_copy_zero_size():
     key2 = bucket.get_key('bar321foo')
     eq(key2.size, 0)
 
+# @attr(resource='object')
+# @attr(method='put')
+# @attr(operation='copy object in same bucket')
+# @attr(assertion='works')
 @nottest
-@attr(resource='object')
-@attr(method='put')
-@attr(operation='copy object in same bucket')
-@attr(assertion='works')
 def test_object_copy_same_bucket():
     bucket = get_new_bucket()
     key = bucket.new_key('foo123bar')
@@ -4338,11 +4319,11 @@ def test_object_copy_same_bucket():
     key2 = bucket.get_key('bar321foo')
     eq(key2.get_contents_as_string(), 'foo')
 
+# @attr(resource='object')
+# @attr(method='put')
+# @attr(operation='copy object to itself')
+# @attr(assertion='fails')
 @nottest
-@attr(resource='object')
-@attr(method='put')
-@attr(operation='copy object to itself')
-@attr(assertion='fails')
 def test_object_copy_to_itself():
     bucket = get_new_bucket()
     key = bucket.new_key('foo123bar')
@@ -4352,11 +4333,11 @@ def test_object_copy_to_itself():
     eq(e.reason, 'Bad Request')
     eq(e.error_code, 'InvalidRequest')
 
+# @attr(resource='object')
+# @attr(method='put')
+# @attr(operation='modify object metadata by copying')
+# @attr(assertion='fails')
 @nottest
-@attr(resource='object')
-@attr(method='put')
-@attr(operation='modify object metadata by copying')
-@attr(assertion='fails')
 def test_object_copy_to_itself_with_metadata():
     bucket = get_new_bucket()
     key = bucket.new_key('foo123bar')
@@ -4369,11 +4350,11 @@ def test_object_copy_to_itself_with_metadata():
     md = key2.get_metadata('foo')
     eq(md, 'bar')
 
+# @attr(resource='object')
+# @attr(method='put')
+# @attr(operation='copy object from different bucket')
+# @attr(assertion='works')
 @nottest
-@attr(resource='object')
-@attr(method='put')
-@attr(operation='copy object from different bucket')
-@attr(assertion='works')
 def test_object_copy_diff_bucket():
     buckets = [get_new_bucket(), get_new_bucket()]
     key = buckets[0].new_key('foo123bar')
@@ -4384,11 +4365,11 @@ def test_object_copy_diff_bucket():
 
 # is this a necessary check? a NoneType object is being touched here
 # it doesn't get to the S3 level
+# @attr(resource='object')
+# @attr(method='put')
+# @attr(operation='copy from an inaccessible bucket')
+# @attr(assertion='fails w/AttributeError')
 @nottest
-@attr(resource='object')
-@attr(method='put')
-@attr(operation='copy from an inaccessible bucket')
-@attr(assertion='fails w/AttributeError')
 def test_object_copy_not_owned_bucket():
     buckets = [get_new_bucket(), get_new_bucket(targets.alt.default)]
     print repr(buckets[1])
@@ -4400,11 +4381,11 @@ def test_object_copy_not_owned_bucket():
     except AttributeError:
         pass
 
+# @attr(resource='object')
+# @attr(method='put')
+# @attr(operation='copy object and change acl')
+# @attr(assertion='works')
 @nottest
-@attr(resource='object')
-@attr(method='put')
-@attr(operation='copy object and change acl')
-@attr(assertion='works')
 def test_object_copy_canned_acl():
     bucket = get_new_bucket()
     key = bucket.new_key('foo123bar')
@@ -4511,10 +4492,7 @@ def test_multipart_upload():
     upload = _multipart_upload(bucket, key, 30 * 1024 * 1024, headers={'Content-Type': content_type}, metadata={'foo': 'bar'})
     upload.complete_upload()
 
-    (obj_count, bytes_used) = _head_bucket(bucket)
-
-    eq(obj_count, 1)
-    eq(bytes_used, 30 * 1024 * 1024)
+    _head_bucket(bucket)
 
     k=bucket.get_key(key)
     eq(k.metadata['foo'], 'bar')
@@ -4620,10 +4598,7 @@ def test_abort_multipart_upload():
     upload = _multipart_upload(bucket, key, 10 * 1024 * 1024)
     upload.cancel_upload()
 
-    (obj_count, bytes_used) = _head_bucket(bucket)
-
-    eq(obj_count, 0)
-    eq(bytes_used, 0)
+    _head_bucket(bucket)
 
 def test_abort_multipart_upload_not_found():
     bucket = get_new_bucket()
