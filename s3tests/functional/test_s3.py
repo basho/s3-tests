@@ -29,6 +29,7 @@ import xml.etree.ElementTree as ET
 from httplib import HTTPConnection, HTTPSConnection
 from urlparse import urlparse
 
+from nose.tools import nottest
 from nose.tools import eq_ as eq
 from nose.plugins.attrib import attr
 from nose.plugins.skip import SkipTest
@@ -860,6 +861,7 @@ def test_object_create_unreadable():
     key.set_contents_from_string('bar')
 
 
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='delete multiple objects')
@@ -1134,6 +1136,7 @@ def _get_post_url(conn, bucket):
                     host=conn.host, port=conn.port, bucket=bucket.name)
         return url
 
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='anonymous browser based upload via POST request')
@@ -1152,7 +1155,7 @@ def test_post_object_anonymous_request():
         got = key.get_contents_as_string()
         eq(got, 'bar')
 
-
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='authenticated browser based upload via POST request')
@@ -1226,6 +1229,7 @@ def test_post_object_authenticated_request_bad_access_key():
 	eq(r.status_code, 403)
 
 
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='anonymous browser based upload via POST request')
@@ -1244,7 +1248,7 @@ def test_post_object_set_success_code():
         message = ET.fromstring(r.content).find('Key')
         eq(message.text,'foo.txt')
 
-
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='anonymous browser based upload via POST request')
@@ -1262,7 +1266,7 @@ def test_post_object_set_invalid_success_code():
         eq(r.status_code, 204)
         eq(r.content,'')
 
-
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='authenticated browser based upload via POST request')
@@ -1302,7 +1306,7 @@ def test_post_object_upload_larger_than_chunk():
         got = key.get_contents_as_string()
         eq(got, foo_string)
 
-
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='authenticated browser based upload via POST request')
@@ -1340,7 +1344,7 @@ def test_post_object_set_key_from_filename():
         got = key.get_contents_as_string()
         eq(got, 'bar')
 
-
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='authenticated browser based upload via POST request')
@@ -1375,7 +1379,7 @@ def test_post_object_ignored_header():
         r = requests.post(url, files = payload)
         eq(r.status_code, 204)
 
-
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='authenticated browser based upload via POST request')
@@ -1410,7 +1414,7 @@ def test_post_object_case_insensitive_condition_fields():
         r = requests.post(url, files = payload)
         eq(r.status_code, 204)
 
-
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='authenticated browser based upload via POST request')
@@ -1448,7 +1452,7 @@ def test_post_object_escaped_field_values():
         got = key.get_contents_as_string()
         eq(got, 'bar')
 
-
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='authenticated browser based upload via POST request')
@@ -1492,7 +1496,7 @@ def test_post_object_success_redirect_action():
         '{rurl}?bucket={bucket}&key={key}&etag=%22{etag}%22'.format(rurl = redirect_url, bucket = bucket.name,
                                                                      key = key.name, etag = key.etag.strip('"')))
 
-
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='authenticated browser based upload via POST request')
@@ -1527,7 +1531,7 @@ def test_post_object_invalid_signature():
         r = requests.post(url, files = payload)
         eq(r.status_code, 403)
 
-
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='authenticated browser based upload via POST request')
@@ -1562,7 +1566,7 @@ def test_post_object_invalid_access_key():
         r = requests.post(url, files = payload)
         eq(r.status_code, 403)
 
-
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='authenticated browser based upload via POST request')
@@ -1597,7 +1601,7 @@ def test_post_object_invalid_date_format():
         r = requests.post(url, files = payload)
         eq(r.status_code, 400)
 
-
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='authenticated browser based upload via POST request')
@@ -1631,7 +1635,7 @@ def test_post_object_no_key_specified():
         r = requests.post(url, files = payload)
         eq(r.status_code, 400)
 
-
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='authenticated browser based upload via POST request')
@@ -1666,7 +1670,7 @@ def test_post_object_missing_signature():
         r = requests.post(url, files = payload)
         eq(r.status_code, 400)
 
-
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='authenticated browser based upload via POST request')
@@ -1700,7 +1704,7 @@ def test_post_object_missing_policy_condition():
         r = requests.post(url, files = payload)
         eq(r.status_code, 403)
 
-
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='authenticated browser based upload via POST request')
@@ -1738,7 +1742,7 @@ def test_post_object_user_specified_header():
         key = bucket.get_key("foo.txt")
         eq(key.get_metadata('foo'), 'barclamp')
 
-
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='authenticated browser based upload via POST request')
@@ -1774,7 +1778,7 @@ def test_post_object_request_missing_policy_specified_field():
         r = requests.post(url, files = payload)
         eq(r.status_code, 403)
 
-
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='authenticated browser based upload via POST request')
@@ -1809,7 +1813,7 @@ def test_post_object_condition_is_case_sensitive():
         r = requests.post(url, files = payload)
         eq(r.status_code, 400)
 
-
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='authenticated browser based upload via POST request')
@@ -1844,7 +1848,7 @@ def test_post_object_expires_is_case_sensitive():
         r = requests.post(url, files = payload)
         eq(r.status_code, 400)
 
-
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='authenticated browser based upload via POST request')
@@ -1879,7 +1883,7 @@ def test_post_object_expired_policy():
         r = requests.post(url, files = payload)
         eq(r.status_code, 403)
 
-
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='authenticated browser based upload via POST request')
@@ -1915,7 +1919,7 @@ def test_post_object_invalid_request_field_value():
         r = requests.post(url, files = payload)
         eq(r.status_code, 403)
 
-
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='authenticated browser based upload via POST request')
@@ -1950,7 +1954,7 @@ def test_post_object_missing_expires_condition():
         r = requests.post(url, files = payload)
         eq(r.status_code, 400)
 
-
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='authenticated browser based upload via POST request')
@@ -1978,7 +1982,7 @@ def test_post_object_missing_conditions_list():
         r = requests.post(url, files = payload)
         eq(r.status_code, 400)
 
-
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='authenticated browser based upload via POST request')
@@ -2013,7 +2017,7 @@ def test_post_object_upload_size_limit_exceeded():
         r = requests.post(url, files = payload)
         eq(r.status_code, 400)
 
-
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='authenticated browser based upload via POST request')
@@ -2048,7 +2052,7 @@ def test_post_object_missing_content_length_argument():
         r = requests.post(url, files = payload)
         eq(r.status_code, 400)
 
-
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='authenticated browser based upload via POST request')
@@ -2083,7 +2087,7 @@ def test_post_object_invalid_content_length_argument():
         r = requests.post(url, files = payload)
         eq(r.status_code, 400)
 
-
+@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='authenticated browser based upload via POST request')
@@ -2692,6 +2696,7 @@ def check_good_bucket_name(name, _prefix=None):
             ))
 
 
+@nottest
 def _test_bucket_create_naming_good_long(length):
     """
     Attempt to create a bucket whose name (including the
@@ -2707,6 +2712,8 @@ def _test_bucket_create_naming_good_long(length):
 
 
 # Breaks DNS with SubdomainCallingFormat
+@nottest
+@nottest
 @attr('fails_with_subdomain')
 @attr(resource='bucket')
 @attr(method='put')
@@ -2717,6 +2724,7 @@ def test_bucket_create_naming_good_long_250():
 
 
 # Breaks DNS with SubdomainCallingFormat
+@nottest
 @attr('fails_with_subdomain')
 @attr(resource='bucket')
 @attr(method='put')
@@ -2727,6 +2735,7 @@ def test_bucket_create_naming_good_long_251():
 
 
 # Breaks DNS with SubdomainCallingFormat
+@nottest
 @attr('fails_with_subdomain')
 @attr(resource='bucket')
 @attr(method='put')
@@ -2737,6 +2746,7 @@ def test_bucket_create_naming_good_long_252():
 
 
 # Breaks DNS with SubdomainCallingFormat
+@nottest
 @attr('fails_with_subdomain')
 @attr(resource='bucket')
 @attr(method='put')
@@ -2747,6 +2757,7 @@ def test_bucket_create_naming_good_long_253():
 
 
 # Breaks DNS with SubdomainCallingFormat
+@nottest
 @attr('fails_with_subdomain')
 @attr(resource='bucket')
 @attr(method='put')
@@ -2757,6 +2768,7 @@ def test_bucket_create_naming_good_long_254():
 
 
 # Breaks DNS with SubdomainCallingFormat
+@nottest
 @attr('fails_with_subdomain')
 @attr(resource='bucket')
 @attr(method='put')
@@ -2766,6 +2778,7 @@ def test_bucket_create_naming_good_long_255():
     _test_bucket_create_naming_good_long(255)
 
 # Breaks DNS with SubdomainCallingFormat
+@nottest
 @attr('fails_with_subdomain')
 @attr(resource='bucket')
 @attr(method='get')
@@ -2807,6 +2820,7 @@ def test_bucket_create_naming_bad_punctuation():
 
 
 # test_bucket_create_naming_dns_* are valid but not recommended
+@nottest
 @attr(resource='bucket')
 @attr(method='put')
 @attr(operation='create w/underscore in name')
@@ -2816,6 +2830,7 @@ def test_bucket_create_naming_dns_underscore():
 
 
 # Breaks DNS with SubdomainCallingFormat
+@nottest
 @attr('fails_with_subdomain')
 @attr(resource='bucket')
 @attr(method='put')
@@ -2829,6 +2844,7 @@ def test_bucket_create_naming_dns_long():
 
 
 # Breaks DNS with SubdomainCallingFormat
+@nottest
 @attr('fails_with_subdomain')
 @attr(resource='bucket')
 @attr(method='put')
@@ -2839,6 +2855,7 @@ def test_bucket_create_naming_dns_dash_at_end():
 
 
 # Breaks DNS with SubdomainCallingFormat
+@nottest
 @attr('fails_with_subdomain')
 @attr(resource='bucket')
 @attr(method='put')
@@ -2849,6 +2866,7 @@ def test_bucket_create_naming_dns_dot_dot():
 
 
 # Breaks DNS with SubdomainCallingFormat
+@nottest
 @attr('fails_with_subdomain')
 @attr(resource='bucket')
 @attr(method='put')
@@ -2859,6 +2877,7 @@ def test_bucket_create_naming_dns_dot_dash():
 
 
 # Breaks DNS with SubdomainCallingFormat
+@nottest
 @attr('fails_with_subdomain')
 @attr(resource='bucket')
 @attr(method='put')
@@ -3927,6 +3946,7 @@ def test_bucket_acl_revoke_all():
 
 # TODO rgw log_bucket.set_as_logging_target() gives 403 Forbidden
 # http://tracker.newdream.net/issues/984
+@nottest
 @attr(resource='bucket.log')
 @attr(method='put')
 @attr(operation='set/enable/disable logging target')
@@ -4305,6 +4325,7 @@ def test_object_copy_zero_size():
     key2 = bucket.get_key('bar321foo')
     eq(key2.size, 0)
 
+@nottest
 @attr(resource='object')
 @attr(method='put')
 @attr(operation='copy object in same bucket')
@@ -4317,6 +4338,7 @@ def test_object_copy_same_bucket():
     key2 = bucket.get_key('bar321foo')
     eq(key2.get_contents_as_string(), 'foo')
 
+@nottest
 @attr(resource='object')
 @attr(method='put')
 @attr(operation='copy object to itself')
@@ -4330,6 +4352,7 @@ def test_object_copy_to_itself():
     eq(e.reason, 'Bad Request')
     eq(e.error_code, 'InvalidRequest')
 
+@nottest
 @attr(resource='object')
 @attr(method='put')
 @attr(operation='modify object metadata by copying')
@@ -4346,6 +4369,7 @@ def test_object_copy_to_itself_with_metadata():
     md = key2.get_metadata('foo')
     eq(md, 'bar')
 
+@nottest
 @attr(resource='object')
 @attr(method='put')
 @attr(operation='copy object from different bucket')
@@ -4360,6 +4384,7 @@ def test_object_copy_diff_bucket():
 
 # is this a necessary check? a NoneType object is being touched here
 # it doesn't get to the S3 level
+@nottest
 @attr(resource='object')
 @attr(method='put')
 @attr(operation='copy from an inaccessible bucket')
@@ -4375,6 +4400,7 @@ def test_object_copy_not_owned_bucket():
     except AttributeError:
         pass
 
+@nottest
 @attr(resource='object')
 @attr(method='put')
 @attr(operation='copy object and change acl')
