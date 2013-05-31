@@ -2310,7 +2310,10 @@ def _make_request(method, bucket, key, body=None, authenticated=False, response_
     else:
         class_ = HTTPConnection
 
-    c = class_(s3.main.host, s3.main.port, strict=True)
+    if s3.main.proxy is None:
+        c = class_(s3.main.host, s3.main.port, strict=True)
+    else:
+        c = class_(s3.main.proxy, s3.main.proxy_port, strict=True)
     c.request(method, path, body=body)
     res = c.getresponse()
 
@@ -2335,7 +2338,10 @@ def _make_bucket_request(method, bucket, body=None, authenticated=False, expires
     else:
         class_ = HTTPConnection
 
-    c = class_(s3.main.host, s3.main.port, strict=True)
+    if s3.main.proxy is None:
+        c = class_(s3.main.host, s3.main.port, strict=True)
+    else:
+        c = class_(s3.main.proxy, s3.main.proxy_port, strict=True)
     c.request(method, path, body=body)
     res = c.getresponse()
 
@@ -4235,6 +4241,8 @@ def _create_connection_bad_auth(aws_access_key_id='badauth'):
         is_secure=main.is_secure,
         port=main.port,
         host=main.host,
+        proxy=main.proxy,
+        proxy_port=main.proxy_port,
         calling_format=main.calling_format,
         )
     return conn
@@ -4803,7 +4811,7 @@ def test_list_multipart_upload():
     upload2.cancel_upload()
     upload3.cancel_upload()
 
-def _simple_http_req_100_cont(host, port, is_secure, method, resource):
+def _simple_http_req_100_cont(host, port, proxy, proxy_port, is_secure, method, resource):
     """
     Send the specified request w/expect 100-continue
     and await confirmation.
@@ -4818,7 +4826,10 @@ def _simple_http_req_100_cont(host, port, is_secure, method, resource):
     if is_secure:
         s = ssl.wrap_socket(s);
     s.settimeout(5)
-    s.connect((host, port))
+    if proxy is None:
+        s.connect((host, port))
+    else:
+        s.connect((proxy, proxy_port))
     s.send(req)
 
     try:
@@ -4845,12 +4856,16 @@ def test_100_continue():
     objname = 'testobj'
     resource = '/{bucket}/{obj}'.format(bucket=bucket.name, obj=objname)
 
-    status = _simple_http_req_100_cont(s3.main.host, s3.main.port, s3.main.is_secure, 'PUT', resource)
+    status = _simple_http_req_100_cont(s3.main.host, s3.main.port,
+                                       s3.main.proxy, s3.main.proxy_port,
+                                       s3.main.is_secure, 'PUT', resource)
     eq(status, '403')
 
     bucket.set_acl('public-read-write')
 
-    status = _simple_http_req_100_cont(s3.main.host, s3.main.port, s3.main.is_secure, 'PUT', resource)
+    status = _simple_http_req_100_cont(s3.main.host, s3.main.port,
+                                       s3.main.proxy, s3.main.proxy_port,
+                                       s3.main.is_secure, 'PUT', resource)
     eq(status, '100')
 
 def _test_bucket_acls_changes_persistent(bucket):
@@ -5096,6 +5111,8 @@ def _test_atomic_read(file_size):
         is_secure=s3['main'].is_secure,
         port=s3['main'].port,
         host=s3['main'].host,
+        proxy=s3['main'].proxy,
+        proxy_port=s3['main'].proxy_port,
         calling_format=s3['main'].calling_format,
         )
 
