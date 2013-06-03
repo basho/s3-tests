@@ -3836,6 +3836,8 @@ def _create_connection_bad_auth():
         is_secure=main.is_secure,
         port=main.port,
         host=main.host,
+        proxy=main.proxy,
+        proxy_port=main.proxy_port,
         calling_format=main.calling_format,
         )
     return conn
@@ -4501,6 +4503,8 @@ def _test_atomic_read(file_size):
         is_secure=s3['main'].is_secure,
         port=s3['main'].port,
         host=s3['main'].host,
+        proxy=s3['main'].proxy,
+        proxy_port=s3['main'].proxy_port,
         calling_format=s3['main'].calling_format,
         )
 
