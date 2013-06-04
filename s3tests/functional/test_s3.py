@@ -989,7 +989,7 @@ def test_object_set_get_unicode_metadata():
     got = key2.get_metadata('meta1')
     eq(got, u"Hello World\xe9")
 
-
+@nottest
 @attr(resource='object.metadata')
 @attr(method='put')
 @attr(operation='metadata write/re-write')
@@ -1017,7 +1017,7 @@ def _set_get_metadata_unreadable(metadata, bucket=None):
     got = decode_header(got)
     return got
 
-
+@nottest
 @attr(resource='object.metadata')
 @attr(method='put')
 @attr(operation='metadata write')
@@ -1028,7 +1028,7 @@ def test_object_set_get_metadata_empty_to_unreadable_prefix():
     got = _set_get_metadata_unreadable(metadata)
     eq(got, [(metadata, 'utf-8')])
 
-
+@nottest
 @attr(resource='object.metadata')
 @attr(method='put')
 @attr(operation='metadata write')
@@ -1039,7 +1039,7 @@ def test_object_set_get_metadata_empty_to_unreadable_suffix():
     got = _set_get_metadata_unreadable(metadata)
     eq(got, [(metadata, 'utf-8')])
 
-
+@nottest
 @attr(resource='object.metadata')
 @attr(method='put')
 @attr(operation='metadata write')
@@ -1049,7 +1049,7 @@ def test_object_set_get_metadata_empty_to_unreadable_infix():
     got = _set_get_metadata_unreadable(metadata)
     eq(got, [(metadata, 'utf-8')])
 
-
+@nottest
 @attr(resource='object.metadata')
 @attr(method='put')
 @attr(operation='metadata re-write')
@@ -1063,7 +1063,7 @@ def test_object_set_get_metadata_overwrite_to_unreadable_prefix():
     got2 = _set_get_metadata_unreadable(metadata2)
     eq(got2, [(metadata2, 'utf-8')])
 
-
+@nottest
 @attr(resource='object.metadata')
 @attr(method='put')
 @attr(operation='metadata re-write')
@@ -1077,7 +1077,7 @@ def test_object_set_get_metadata_overwrite_to_unreadable_suffix():
     got2 = _set_get_metadata_unreadable(metadata2)
     eq(got2, [(metadata2, 'utf-8')])
 
-
+@nottest
 @attr(resource='object.metadata')
 @attr(method='put')
 @attr(operation='metadata re-write')
@@ -2313,7 +2313,7 @@ def _make_request(method, bucket, key, body=None, authenticated=False, response_
     else:
         class_ = HTTPConnection
 
-    c = class_(s3.main.host, s3.main.port, strict=True)
+    c = class_(s3.main.proxy, s3.main.proxy_port, strict=True)
     c.request(method, path, body=body)
     res = c.getresponse()
 
@@ -2338,7 +2338,7 @@ def _make_bucket_request(method, bucket, body=None, authenticated=False, expires
     else:
         class_ = HTTPConnection
 
-    c = class_(s3.main.host, s3.main.port, strict=True)
+    c = class_(s3.main.proxy, s3.main.proxy_port, strict=True)
     c.request(method, path, body=body)
     res = c.getresponse()
 
@@ -2458,6 +2458,7 @@ def test_object_raw_authenticated():
     eq(res.reason, 'OK')
 
 
+@nottest
 @attr(resource='object')
 @attr(method='get')
 @attr(operation='authenticated on private bucket/private object with modified response headers')
@@ -4321,11 +4322,11 @@ def test_object_copy_same_bucket():
     key2 = bucket.get_key('bar321foo')
     eq(key2.get_contents_as_string(), 'foo')
 
-# @attr(resource='object')
-# @attr(method='put')
-# @attr(operation='copy object to itself')
-# @attr(assertion='fails')
 @nottest
+@attr(resource='object')
+@attr(method='put')
+@attr(operation='copy object to itself')
+@attr(assertion='fails')
 def test_object_copy_to_itself():
     bucket = get_new_bucket()
     key = bucket.new_key('foo123bar')
@@ -4335,11 +4336,10 @@ def test_object_copy_to_itself():
     eq(e.reason, 'Bad Request')
     eq(e.error_code, 'InvalidRequest')
 
-# @attr(resource='object')
-# @attr(method='put')
-# @attr(operation='modify object metadata by copying')
-# @attr(assertion='fails')
-@nottest
+@attr(resource='object')
+@attr(method='put')
+@attr(operation='modify object metadata by copying')
+@attr(assertion='fails')
 def test_object_copy_to_itself_with_metadata():
     bucket = get_new_bucket()
     key = bucket.new_key('foo123bar')
@@ -4639,7 +4639,7 @@ def test_list_multipart_upload():
     upload2.cancel_upload()
     upload3.cancel_upload()
 
-def _simple_http_req_100_cont(host, port, is_secure, method, resource):
+def _simple_http_req_100_cont(host, port, proxy, proxy_port, is_secure, method, resource):
     """
     Send the specified request w/expect 100-continue
     and await confirmation.
@@ -4654,7 +4654,7 @@ def _simple_http_req_100_cont(host, port, is_secure, method, resource):
     if is_secure:
         s = ssl.wrap_socket(s);
     s.settimeout(5)
-    s.connect((host, port))
+    s.connect((proxy, proxy_port))
     s.send(req)
 
     try:
@@ -4680,12 +4680,12 @@ def test_100_continue():
     objname = 'testobj'
     resource = '/{bucket}/{obj}'.format(bucket=bucket.name, obj=objname)
 
-    status = _simple_http_req_100_cont(s3.main.host, s3.main.port, s3.main.is_secure, 'PUT', resource)
+    status = _simple_http_req_100_cont(s3.main.host, s3.main.port, s3.main.proxy, s3.main.proxy_port, s3.main.is_secure, 'PUT', resource)
     eq(status, '403')
 
     bucket.set_acl('public-read-write')
 
-    status = _simple_http_req_100_cont(s3.main.host, s3.main.port, s3.main.is_secure, 'PUT', resource)
+    status = _simple_http_req_100_cont(s3.main.host, s3.main.port, s3.main.proxy, s3.main.proxy_port, s3.main.is_secure, 'PUT', resource)
     eq(status, '100')
 
 def _test_bucket_acls_changes_persistent(bucket):
@@ -5162,7 +5162,7 @@ def test_atomic_write_bucket_gone():
     # create file of A's but delete the bucket it's in before we finish writing
     # all of them
     key = bucket.new_key('foo')
-    fp_a = FakeWriteFile(1024*1024, 'A', remove_bucket)
+    fp_a = FakeWriteFile(1024*100, 'A', remove_bucket)
     e = assert_raises(boto.exception.S3ResponseError, key.set_contents_from_file, fp_a)
     eq(e.status, 404)
     assert(e.reason.find('Not Found') != -1)
