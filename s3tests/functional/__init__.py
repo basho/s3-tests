@@ -114,6 +114,16 @@ def setup():
             port = None
 
         try:
+            proxy = cfg.get(section, 'proxy')
+        except ConfigParser.NoOptionError:
+            proxy = None
+
+        try:
+            proxy_port = cfg.getint(section, 'proxy_port')
+        except ConfigParser.NoOptionError:
+            proxy_port = None
+
+        try:
             raw_calling_format = cfg.get(section, 'calling_format')
         except ConfigParser.NoOptionError:
             raw_calling_format = 'ordinary'
@@ -140,6 +150,8 @@ def setup():
             aws_secret_access_key=cfg.get(section, 'secret_key'),
             is_secure=cfg.getboolean(section, 'is_secure'),
             port=port,
+            proxy=proxy,
+            proxy_port=proxy_port,
             host=cfg.get(section, 'host'),
             # TODO test vhost calling format
             calling_format=calling_format,

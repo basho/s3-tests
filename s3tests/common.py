@@ -88,6 +88,8 @@ def connect(conf):
     mapping = dict(
         port='port',
         host='host',
+        proxy='proxy',
+        proxy_port='proxy_port',
         is_secure='is_secure',
         access_key='aws_access_key_id',
         secret_key='aws_secret_access_key',
