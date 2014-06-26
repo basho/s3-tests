@@ -860,7 +860,6 @@ def test_object_create_unreadable():
     key.set_contents_from_string('bar')
 
 
-@nottest
 @attr(resource='object')
 @attr(method='post')
 @attr(operation='delete multiple objects')
@@ -3732,6 +3731,8 @@ def _get_acl_header(user=None, perms=None):
 
     return headers
 
+#TODO: checkout canonicaluser ACL is done or not
+@nottest
 @attr(resource='object')
 @attr(method='PUT')
 @attr(operation='add all grants to user through headers')
@@ -3790,7 +3791,7 @@ def test_object_header_acl_grants():
             ],
         )
 
-
+@nottest
 @attr(resource='bucket')
 @attr(method='PUT')
 @attr(operation='add all grants to user through headers')
@@ -4309,11 +4310,10 @@ def test_object_copy_zero_size():
     key2 = bucket.get_key('bar321foo')
     eq(key2.size, 0)
 
-# @attr(resource='object')
-# @attr(method='put')
-# @attr(operation='copy object in same bucket')
-# @attr(assertion='works')
-@nottest
+@attr(resource='object')
+@attr(method='put')
+@attr(operation='copy object in same bucket')
+@attr(assertion='works')
 def test_object_copy_same_bucket():
     bucket = get_new_bucket()
     key = bucket.new_key('foo123bar')
@@ -4322,6 +4322,7 @@ def test_object_copy_same_bucket():
     key2 = bucket.get_key('bar321foo')
     eq(key2.get_contents_as_string(), 'foo')
 
+## Note: Current S3 permits copying to itself @ 2014Mar
 @nottest
 @attr(resource='object')
 @attr(method='put')
@@ -4352,11 +4353,10 @@ def test_object_copy_to_itself_with_metadata():
     md = key2.get_metadata('foo')
     eq(md, 'bar')
 
-# @attr(resource='object')
-# @attr(method='put')
-# @attr(operation='copy object from different bucket')
-# @attr(assertion='works')
-@nottest
+@attr(resource='object')
+@attr(method='put')
+@attr(operation='copy object from different bucket')
+@attr(assertion='works')
 def test_object_copy_diff_bucket():
     buckets = [get_new_bucket(), get_new_bucket()]
     key = buckets[0].new_key('foo123bar')
@@ -4367,11 +4367,10 @@ def test_object_copy_diff_bucket():
 
 # is this a necessary check? a NoneType object is being touched here
 # it doesn't get to the S3 level
-# @attr(resource='object')
-# @attr(method='put')
-# @attr(operation='copy from an inaccessible bucket')
-# @attr(assertion='fails w/AttributeError')
-@nottest
+@attr(resource='object')
+@attr(method='put')
+@attr(operation='copy from an inaccessible bucket')
+@attr(assertion='fails w/AttributeError')
 def test_object_copy_not_owned_bucket():
     buckets = [get_new_bucket(), get_new_bucket(targets.alt.default)]
     print repr(buckets[1])
@@ -4383,11 +4382,10 @@ def test_object_copy_not_owned_bucket():
     except AttributeError:
         pass
 
-# @attr(resource='object')
-# @attr(method='put')
-# @attr(operation='copy object and change acl')
-# @attr(assertion='works')
-@nottest
+@attr(resource='object')
+@attr(method='put')
+@attr(operation='copy object and change acl')
+@attr(assertion='works')
 def test_object_copy_canned_acl():
     bucket = get_new_bucket()
     key = bucket.new_key('foo123bar')
@@ -4713,6 +4711,7 @@ def test_stress_bucket_acls_changes():
     for i in xrange(10):
         _test_bucket_acls_changes_persistent(bucket);
 
+@nottest
 @attr(resource='bucket')
 @attr(method='put')
 @attr(operation='set cors')
@@ -4755,7 +4754,7 @@ def _cors_request_and_check(func, url, headers, expect_status, expect_allow_orig
     assert r.headers['access-control-allow-methods'] == expect_allow_methods
 
     
-
+@nottest
 @attr(resource='bucket')
 @attr(method='get')
 @attr(operation='check cors response when origin header set')
