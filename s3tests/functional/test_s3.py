@@ -5419,6 +5419,7 @@ def check_configure_versioning_retry(bucket, status, expected_string):
     eq(expected_string, read_status)
 
 
+@nottest
 @attr(resource='bucket')
 @attr(method='create')
 @attr(operation='create versioned bucket')
@@ -5558,6 +5559,7 @@ def _do_test_create_remove_versions_and_head(bucket, objname, num_versions, num_
 
     _do_remove_versions(bucket, objname, remove_start_idx, idx_inc, head_rm_ratio, k, c)
 
+@nottest
 @attr(resource='object')
 @attr(method='create')
 @attr(operation='create and remove versioned object')
@@ -5575,6 +5577,7 @@ def test_versioning_obj_create_read_remove():
     _do_test_create_remove_versions(bucket, objname, num_vers, 4, -1)
     _do_test_create_remove_versions(bucket, objname, num_vers, 3, 3)
 
+@nottest
 @attr(resource='object')
 @attr(method='create')
 @attr(operation='create and remove versioned object and head')
@@ -5626,6 +5629,7 @@ def overwrite_suspended_versioning_obj(bucket, objname, k, c, content):
 
     check_obj_versions(bucket, objname, k, c)
 
+@nottest
 @attr(resource='object')
 @attr(method='create')
 @attr(operation='suspend versioned bucket')
@@ -5662,6 +5666,7 @@ def test_versioning_obj_suspend_versions():
     eq(len(k), 0)
     eq(len(k), len(c))
 
+@nottest
 @attr(resource='object')
 @attr(method='create')
 @attr(operation='suspend versioned bucket')
@@ -5695,6 +5700,7 @@ def test_versioning_obj_suspend_versions_simple():
     eq(len(k), 0)
     eq(len(k), len(c))
 
+@nottest
 @attr(resource='object')
 @attr(method='remove')
 @attr(operation='create and remove versions')
@@ -5717,6 +5723,7 @@ def test_versioning_obj_create_versions_remove_all():
     eq(len(k), 0)
     eq(len(k), len(c))
 
+@nottest
 @attr(resource='object')
 @attr(method='multipart')
 @attr(operation='create and test multipart object')
@@ -5750,6 +5757,7 @@ def test_versioning_obj_create_overwrite_multipart():
 
 
 
+@nottest
 @attr(resource='object')
 @attr(method='multipart')
 @attr(operation='list versioned objects')
@@ -5787,6 +5795,7 @@ def test_versioning_obj_list_marker():
             eq(key1.version_id, key2.version_id)
 
 
+@nottest
 @attr(resource='object')
 @attr(method='multipart')
 @attr(operation='create and test versioned object copying')
@@ -5827,6 +5836,7 @@ def _count_bucket_versioned_objs(bucket):
     return len(k)
 
 
+@nottest
 @attr(resource='object')
 @attr(method='delete')
 @attr(operation='delete multiple versions')
@@ -5863,6 +5873,7 @@ def test_versioning_multi_object_delete():
 
         eq(_count_bucket_versioned_objs(bucket), 0)
 
+@nottest
 @attr(resource='object')
 @attr(method='delete')
 @attr(operation='delete multiple versions')
@@ -5909,6 +5920,7 @@ def test_versioning_multi_object_delete_with_marker():
 
         eq(_count_bucket_versioned_objs(bucket), 0)
 
+@nottest
 @attr(resource='object')
 @attr(method='delete')
 @attr(operation='multi delete create marker')
@@ -5940,6 +5952,7 @@ def test_versioning_multi_object_delete_with_marker_create():
             eq(o.name, keyname)
             eq(o.version_id, delete_markers[0].delete_marker_version_id)
 
+@nottest
 @attr(resource='object')
 @attr(method='put')
 @attr(operation='change acl on an object version changes specific version')
@@ -6038,6 +6051,7 @@ def _do_wait_completion(t):
     for thr in t:
         thr.join()
 
+@nottest
 @attr(resource='object')
 @attr(method='put')
 @attr(operation='concurrent creation of objects, concurrent removal')
@@ -6065,6 +6079,7 @@ def test_versioned_concurrent_object_create_concurrent_remove():
         eq(_count_bucket_versioned_objs(bucket), 0)
         eq(len(bucket.get_all_keys()), 0)
 
+@nottest
 @attr(resource='object')
 @attr(method='put')
 @attr(operation='concurrent creation and removal of objects')
