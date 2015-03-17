@@ -2121,6 +2121,7 @@ def test_post_object_upload_size_below_minimum():
         eq(r.status_code, 400)
 
 
+@nottest
 @attr(resource='object')
 @attr(method='put')
 @attr(operation='data re-write w/ If-Match: the latest ETag')
@@ -2138,6 +2139,7 @@ def test_put_object_ifmatch_good():
     eq(got_new_data, 'zar')
 
 
+@nottest
 @attr(resource='object')
 @attr(method='put')
 @attr(operation='data re-write w/ If-Match: outdated ETag')
@@ -2160,6 +2162,7 @@ def test_put_object_ifmatch_failed():
     eq(got_old_data, 'bar')
 
 
+@nottest
 @attr(resource='object')
 @attr(method='put')
 @attr(operation='overwrite existing object w/ If-Match: *')
@@ -2177,6 +2180,7 @@ def test_put_object_ifmatch_overwrite_existed_good():
     eq(got_new_data, 'zar')
 
 
+@nottest
 @attr(resource='object')
 @attr(method='put')
 @attr(operation='overwrite non-existing object w/ If-Match: *')
@@ -2195,6 +2199,7 @@ def test_put_object_ifmatch_nonexisted_failed():
     eq(e.reason, 'Not Found')
     eq(e.error_code, 'NoSuchKey')
 
+@nottest
 @attr(resource='object')
 @attr(method='put')
 @attr(operation='overwrite existing object w/ If-None-Match: outdated ETag')
@@ -2212,6 +2217,7 @@ def test_put_object_ifnonmatch_good():
     eq(got_new_data, 'zar')
 
 
+@nottest
 @attr(resource='object')
 @attr(method='put')
 @attr(operation='overwrite existing object w/ If-None-Match: the latest ETag')
@@ -2233,6 +2239,7 @@ def test_put_object_ifnonmatch_failed():
     got_old_data = key.get_contents_as_string()
     eq(got_old_data, 'bar')
 
+@nottest
 @attr(resource='object')
 @attr(method='put')
 @attr(operation='overwrite non-existing object w/ If-None-Match: *')
@@ -2246,6 +2253,7 @@ def test_put_object_ifnonmatch_nonexisted_good():
     eq(got_data, 'bar')
 
 
+@nottest
 @attr(resource='object')
 @attr(method='put')
 @attr(operation='overwrite existing object w/ If-None-Match: *')
@@ -5097,6 +5105,7 @@ def _test_atomic_conditional_write(file_size):
     # verify B's
     _verify_atomic_key_data(key, file_size, 'B')
 
+@nottest
 @attr(resource='object')
 @attr(method='put')
 @attr(operation='write atomicity')
@@ -5139,6 +5148,7 @@ def _test_atomic_dual_conditional_write(file_size):
     # verify the file
     _verify_atomic_key_data(key, file_size, 'B')
 
+@nottest
 @attr(resource='object')
 @attr(method='put')
 @attr(operation='write one or the other')
