@@ -67,19 +67,7 @@ def nuke_prefixed_buckets_on_conn(prefix, name, conn):
             success = False
             for i in xrange(2):
                 try:
-                    try:
-                        iterator = iter(bucket.list_versions())
-                        # peek into iterator to issue list operation
-                        try:
-                            keys = itertools.chain([next(iterator)], iterator)
-                        except StopIteration:
-                            keys = []  # empty iterator
-                    except boto.exception.S3ResponseError as e:
-                        # some S3 implementations do not support object
-                        # versioning - fall back to listing without versions
-                        if e.error_code != 'NotImplemented':
-                            raise e
-                        keys = bucket.list();
+                    keys = bucket.list();
                     for key in keys:
                         print 'Cleaning bucket {bucket} key {key}'.format(
                             bucket=bucket,
@@ -101,7 +89,6 @@ def nuke_prefixed_buckets_on_conn(prefix, name, conn):
                     return
 
                 bucket.set_canned_acl('private')
-
 
 def nuke_prefixed_buckets(prefix):
     # If no regions are specified, use the simple method
