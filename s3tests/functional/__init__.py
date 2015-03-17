@@ -66,7 +66,7 @@ def nuke_prefixed_buckets_on_conn(prefix, name, conn):
             print 'Cleaning bucket {bucket}'.format(bucket=bucket)
             try:
                 # bucket.set_canned_acl('private')
-                for key in bucket.list_versions():
+                for key in bucket.list():
                     print 'Cleaning bucket {bucket} key {key}'.format(
                         bucket=bucket,
                         key=key,
