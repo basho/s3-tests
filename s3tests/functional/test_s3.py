@@ -4539,6 +4539,9 @@ def test_multipart_upload_multiple_sizes():
     upload = _multipart_upload(bucket, key, 10 * 1024 * 1024)
     upload.complete_upload()
 
+# In Riak CS, the external client tests allow a too small entity request exceptionally.
+# This case should be tested by riak_test.
+@nottest
 @attr(resource='object')
 @attr(method='put')
 @attr(operation='check failure on multiple multi-part upload with size too small')
