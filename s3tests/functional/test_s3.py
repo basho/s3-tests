@@ -2902,7 +2902,6 @@ def test_bucket_create_exists():
     get_new_bucket(targets.main.default, bucket.name)
 
 
-@nottest # TODO: not support yet
 @attr(resource='bucket')
 @attr(method='get')
 @attr(operation='get location')
