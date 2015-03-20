@@ -66,7 +66,7 @@ def nuke_prefixed_buckets_on_conn(prefix, name, conn):
             print 'Cleaning bucket {bucket}'.format(bucket=bucket)
             try:
                 # bucket.set_canned_acl('private')
-                for key in bucket.list_versions():
+                for key in bucket.list():
                     print 'Cleaning bucket {bucket} key {key}'.format(
                         bucket=bucket,
                         key=key,
@@ -266,6 +266,21 @@ def setup():
 
     for section in cfg.sections():
         try:
+            proxy = cfg.get(section, 'proxy')
+        except ConfigParser.NoOptionError:
+            proxy = None
+
+        try:
+            proxy_port = cfg.getint(section, 'proxy_port')
+        except ConfigParser.NoOptionError:
+            proxy_port = None
+
+        try:
+            raw_calling_format = cfg.get(section, 'calling_format')
+        except ConfigParser.NoOptionError:
+            raw_calling_format = 'ordinary'
+
+        try:
             (type_, name) = section.split(None, 1)
         except ValueError:
             continue
@@ -302,6 +317,8 @@ def setup():
                 aws_access_key_id=cfg.get(section, 'access_key'),
                 aws_secret_access_key=cfg.get(section, 'secret_key'),
                 is_secure=conf.is_secure,
+                proxy=proxy,
+                proxy_port=proxy_port,
                 port=conf.port,
                 host=conf.host,
                 # TODO test vhost calling format
