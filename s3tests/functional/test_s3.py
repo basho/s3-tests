@@ -2131,7 +2131,7 @@ def test_put_object_ifmatch_good():
     got_data = key.get_contents_as_string()
     eq(got_data, 'bar')
 
-    key.set_contents_from_string('zar', headers={'If-Match': key.etag.replace('"', '').strip()})
+    key.set_contents_from_string('zar', headers={'If-Match': key.etag.strip()})
     got_new_data = key.get_contents_as_string()
     eq(got_new_data, 'zar')
 
@@ -2223,7 +2223,7 @@ def test_put_object_ifnonmatch_failed():
     eq(got_data, 'bar')
 
     e = assert_raises(boto.exception.S3ResponseError, key.set_contents_from_string, 'zar',
-                      headers={'If-None-Match': key.etag.replace('"', '').strip()})
+                      headers={'If-None-Match': key.etag.strip()})
     eq(e.status, 412)
     eq(e.reason, 'Precondition Failed')
     eq(e.error_code, 'PreconditionFailed')
