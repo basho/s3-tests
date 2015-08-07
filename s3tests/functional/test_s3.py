@@ -213,6 +213,7 @@ def validate_bucket_list(bucket, prefix, delimiter, marker, max_keys,
 @attr(method='get')
 @attr(operation='list')
 @attr(assertion='prefixes in multi-component object names')
+@attr('fails_on_rcs')
 def test_bucket_list_delimiter_prefix():
     bucket = _create_keys(keys=['asdf', 'boo/bar', 'boo/baz/xyzzy', 'cquux/thud', 'cquux/bla'])
 
@@ -994,6 +995,7 @@ def test_object_set_get_unicode_metadata():
 @attr(operation='metadata write/re-write')
 @attr(assertion='non-UTF-8 values detected, but preserved')
 @attr('fails_strict_rfc2616')
+@attr('fails_on_rcs')
 def test_object_set_get_non_utf8_metadata():
     bucket = get_new_bucket()
     key = boto.s3.key.Key(bucket)
@@ -1022,6 +1024,7 @@ def _set_get_metadata_unreadable(metadata, bucket=None):
 @attr(operation='metadata write')
 @attr(assertion='non-priting prefixes noted and preserved')
 @attr('fails_strict_rfc2616')
+@attr('fails_on_rcs')
 def test_object_set_get_metadata_empty_to_unreadable_prefix():
     metadata = '\x04w'
     got = _set_get_metadata_unreadable(metadata)
@@ -1033,6 +1036,7 @@ def test_object_set_get_metadata_empty_to_unreadable_prefix():
 @attr(operation='metadata write')
 @attr(assertion='non-priting suffixes noted and preserved')
 @attr('fails_strict_rfc2616')
+@attr('fails_on_rcs')
 def test_object_set_get_metadata_empty_to_unreadable_suffix():
     metadata = 'h\x04'
     got = _set_get_metadata_unreadable(metadata)
@@ -1043,6 +1047,7 @@ def test_object_set_get_metadata_empty_to_unreadable_suffix():
 @attr(method='put')
 @attr(operation='metadata write')
 @attr(assertion='non-priting in-fixes noted and preserved')
+@attr('fails_on_rcs')
 def test_object_set_get_metadata_empty_to_unreadable_infix():
     metadata = 'h\x04w'
     got = _set_get_metadata_unreadable(metadata)
@@ -1054,6 +1059,7 @@ def test_object_set_get_metadata_empty_to_unreadable_infix():
 @attr(operation='metadata re-write')
 @attr(assertion='non-priting prefixes noted and preserved')
 @attr('fails_strict_rfc2616')
+@attr('fails_on_rcs')
 def test_object_set_get_metadata_overwrite_to_unreadable_prefix():
     metadata = '\x04w'
     got = _set_get_metadata_unreadable(metadata)
@@ -1068,6 +1074,7 @@ def test_object_set_get_metadata_overwrite_to_unreadable_prefix():
 @attr(operation='metadata re-write')
 @attr(assertion='non-priting suffixes noted and preserved')
 @attr('fails_strict_rfc2616')
+@attr('fails_on_rcs')
 def test_object_set_get_metadata_overwrite_to_unreadable_suffix():
     metadata = 'h\x04'
     got = _set_get_metadata_unreadable(metadata)
@@ -1081,6 +1088,7 @@ def test_object_set_get_metadata_overwrite_to_unreadable_suffix():
 @attr(method='put')
 @attr(operation='metadata re-write')
 @attr(assertion='non-priting in-fixes noted and preserved')
+@attr('fails_on_rcs')
 def test_object_set_get_metadata_overwrite_to_unreadable_infix():
     metadata = 'h\x04w'
     got = _set_get_metadata_unreadable(metadata)
@@ -2493,6 +2501,7 @@ def test_object_raw_authenticated():
 @attr(operation='authenticated on private bucket/private object with modified response headers')
 @attr(assertion='succeeds')
 @attr('fails_on_rgw')
+@attr('fails_on_rcs')
 def test_object_raw_response_headers():
     (bucket, key) = _setup_request('private', 'private')
 
@@ -2825,6 +2834,7 @@ def test_bucket_create_naming_bad_punctuation():
 @attr(method='put')
 @attr(operation='create w/underscore in name')
 @attr(assertion='succeeds')
+@attr('fails_on_rcs')
 def test_bucket_create_naming_dns_underscore():
     check_good_bucket_name('foo_bar')
 
@@ -3383,6 +3393,7 @@ def test_object_acl_canned_bucketownerfullcontrol():
 @attr(method='put')
 @attr(operation='set write-acp')
 @attr(assertion='does not modify owner')
+@attr('fails_on_rcs')
 def test_object_acl_full_control_verify_owner():
     bucket = get_new_bucket(targets.main.default)
     bucket.set_acl('public-read-write')
@@ -3816,6 +3827,7 @@ def _get_acl_header(user=None, perms=None):
 @attr(operation='add all grants to user through headers')
 @attr(assertion='adds all grants individually to second user')
 @attr('fails_on_dho')
+@attr('fails_on_rcs')
 def test_object_header_acl_grants():
     bucket = get_new_bucket()
     headers = _get_acl_header()
@@ -3875,6 +3887,7 @@ def test_object_header_acl_grants():
 @attr(operation='add all grants to user through headers')
 @attr(assertion='adds all grants individually to second user')
 @attr('fails_on_dho')
+@attr('fails_on_rcs')
 def test_bucket_header_acl_grants():
     headers = _get_acl_header()
     bucket = get_new_bucket(targets.main.default, get_prefix(), headers)
@@ -4267,6 +4280,7 @@ def test_list_buckets_anonymous():
 @attr(method='get')
 @attr(operation='list all buckets (bad auth)')
 @attr(assertion='fails 403')
+@attr('fails_on_rcs')
 def test_list_buckets_invalid_auth():
     conn = _create_connection_bad_auth()
     e = assert_raises(boto.exception.S3ResponseError, conn.get_all_buckets)
@@ -4278,6 +4292,7 @@ def test_list_buckets_invalid_auth():
 @attr(method='get')
 @attr(operation='list all buckets (bad auth)')
 @attr(assertion='fails 403')
+@attr('fails_on_rcs')
 def test_list_buckets_bad_auth():
     conn = _create_connection_bad_auth(aws_access_key_id=s3.main.aws_access_key_id)
     e = assert_raises(boto.exception.S3ResponseError, conn.get_all_buckets)
@@ -4401,6 +4416,7 @@ def test_object_copy_same_bucket():
 @attr(method='put')
 @attr(operation='copy object to itself')
 @attr(assertion='fails')
+@attr('fails_on_rcs')
 def test_object_copy_to_itself():
     bucket = get_new_bucket()
     key = bucket.new_key('foo123bar')
@@ -4580,6 +4596,7 @@ def _multipart_upload(bucket, s3_key_name, size, part_size=5*1024*1024, do_list=
 @attr(resource='object')
 @attr(method='put')
 @attr(operation='check multipart upload without parts')
+@attr('fails_on_rcs')
 def test_multipart_upload_empty():
     bucket = get_new_bucket()
     key = "mymultipart"
@@ -4698,6 +4715,7 @@ def test_multipart_upload_multiple_sizes():
 @attr(method='put')
 @attr(operation='check failure on multiple multi-part upload with size too small')
 @attr(assertion='fails 400')
+@attr('fails_on_rcs')   # this is an artifact by enforce_multipart_part_size=false in r_t
 def test_multipart_upload_size_too_small():
     bucket = get_new_bucket()
     key="mymultipart"
@@ -4897,6 +4915,7 @@ def test_stress_bucket_acls_changes():
 @attr(method='put')
 @attr(operation='set cors')
 @attr(assertion='succeeds')
+@attr('cors')
 def test_set_cors():
     bucket = get_new_bucket()
     cfg = CORSConfiguration()
@@ -4940,6 +4959,7 @@ def _cors_request_and_check(func, url, headers, expect_status, expect_allow_orig
 @attr(method='get')
 @attr(operation='check cors response when origin header set')
 @attr(assertion='returning cors header')
+@attr('cors')
 def test_cors_origin_response():
     cfg = CORSConfiguration()
     bucket = get_new_bucket()
