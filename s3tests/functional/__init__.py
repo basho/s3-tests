@@ -296,6 +296,16 @@ def setup():
 
     for section in cfg.sections():
         try:
+            proxy = cfg.get(section, 'proxy')
+        except ConfigParser.NoOptionError:
+            proxy = None
+
+        try:
+            proxy_port = cfg.getint(section, 'proxy_port')
+        except ConfigParser.NoOptionError:
+            proxy_port = None
+
+        try:
             (type_, name) = section.split(None, 1)
         except ValueError:
             continue
@@ -323,6 +333,8 @@ def setup():
                 aws_access_key_id=cfg.get(section, 'access_key'),
                 aws_secret_access_key=cfg.get(section, 'secret_key'),
                 is_secure=conf.is_secure,
+                proxy=proxy,
+                proxy_port=proxy_port,
                 port=conf.port,
                 host=conf.host,
                 # TODO test vhost calling format
