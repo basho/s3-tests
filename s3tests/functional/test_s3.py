@@ -4596,7 +4596,6 @@ def _multipart_upload(bucket, s3_key_name, size, part_size=5*1024*1024, do_list=
 @attr(resource='object')
 @attr(method='put')
 @attr(operation='check multipart upload without parts')
-@attr('fails_on_rcs')
 def test_multipart_upload_empty():
     bucket = get_new_bucket()
     key = "mymultipart"
